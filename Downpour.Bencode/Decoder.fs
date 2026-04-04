@@ -13,27 +13,44 @@ let (|MemRem|MemNil|) (mem: ReadOnlyMemory<byte>) =
 
 let rec parse (mem: ReadOnlyMemory<byte>) : ParseResult =
     match mem with
-    | MemRem('i'B, rest) -> parseInt 0L false rest
+    | MemRem('i'B, rest) -> parseInt rest
     | MemRem(digit, _) as data when digit >= '0'B && digit <= '9'B -> parseString 0 data
-    | MemRem('l'B, rest) -> parse rest
-    | MemRem('d'B, rest) -> parse rest
+    | MemRem('l'B, rest) -> parseList [] rest
+    | MemRem('d'B, rest) -> parseDict Map.empty rest
     | MemRem(unknown, _) -> Error $"Unexpected byte identifier: {unknown}"
     | MemNil -> Error $"Unexpected end of input data"
    
-   
-and parseInt (acc: int64) (neg: bool) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * ReadOnlyMemory<byte>, string> =
+/// Integers
+and parseInt (mem: ReadOnlyMemory<byte>) : ParseResult =
     match mem with
-    | MemRem('e'B, rest) ->
-        let result = acc * (if neg then -1L else 1L)
-        Ok (BencodeValue.Integer result, rest)
-    | MemRem('-'B, rest) -> parseInt acc true mem
-    | MemRem(digit, rest) when digit >= '0'B && digit <= '9'B ->
-        let numeric = int64 (digit - '0'B)
-        let newAcc = (acc * 10L) + numeric
-        parseInt newAcc neg rest
-    | MemNil -> Error $"Unexpected EOF when parsing integer"
-    | MemRem(bad, _) -> Error $"Invalid character found within integer: {bad}"
+    | MemRem('-'B, rest) ->
+        match parseIntDigits rest with
+        | Ok (BencodeValue.Integer 0L, _) -> Error "i-0e is invalid"
+        | Ok (BencodeValue.Integer n, rest) -> Ok (BencodeValue.Integer -n, rest)
+        | err -> err
+    | _ -> parseIntDigits mem
 
+and parseIntDigits (mem: ReadOnlyMemory<byte>) : ParseResult =
+    match mem with
+    | MemRem('0'B, MemRem('e'B, rest)) ->
+        Ok (BencodeValue.Integer 0L, rest) // 0 allowed only when alone
+    | MemRem('0'B, _) ->
+        Error "Leading zeros are not permitted in integers"
+    | MemRem(digit, rest) when digit >= '1'B && digit <= '9'B ->
+        let numeric = int64 (digit - '0'B)
+        parseIntAcc numeric rest
+    | MemNil -> Error "Unexpected EOF when parsing integer"
+    | MemRem(bad, _) -> Error $"Invalid character in integer: {bad}"
+
+and parseIntAcc (acc: int64) (mem: ReadOnlyMemory<byte>) : ParseResult =
+    match mem with
+    | MemRem('e'B, rest) -> Ok (BencodeValue.Integer acc, rest)
+    | MemRem(digit, rest) when digit >= '0'B && digit <= '9'B ->
+        parseIntAcc (acc * 10L + int64 (digit - '0'B)) rest
+    | MemNil -> Error "Unexpected EOF when parsing integer"
+    | MemRem(bad, _) -> Error $"Invalid character in integer: {bad}"
+
+/// Strings
 and parseString (acc: int) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * ReadOnlyMemory<byte>, string> =
     match mem with
     | MemRem(':'B, rest) ->
@@ -49,13 +66,27 @@ and parseString (acc: int) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * R
     | MemRem(bad, _) -> Error $"Invalid character in string length: {bad}"
     | MemNil -> Error $"Unexpected end of input data"
     
-    
-// and parseList (acc: BencodeValue list) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * ReadOnlyMemory<byte>, string> =
-//     match mem with
-//     | MemRem('e'B, rest) -> Ok (BencodeValue.List acc, rest)
-//     | MemRem(_, _) ->
-//         // let value, rest = parse mem
+/// Lists
+and parseList (acc: BencodeValue list) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * ReadOnlyMemory<byte>, string> =
+    match mem with
+    | MemRem('e'B, rest) -> Ok (BencodeValue.List (List.rev acc), rest)
+    | _ ->
+        match parse mem with
+        | Error err -> Error err
+        | Ok (value, rest) -> parseList (value :: acc) rest
         
+/// Dicts
+and parseDict (acc: Map<byte array, BencodeValue>) (mem: ReadOnlyMemory<byte>) : Result<BencodeValue * ReadOnlyMemory<byte>, string> =
+    match mem with
+    | MemRem('e'B, rest) -> Ok (BencodeValue.Dictionary acc, rest)
+    | _ ->
+        match parse mem with
+        | Error err -> Error err
+        | Ok (BencodeValue.String key, rest) ->
+            match parse rest with
+            | Error err -> Error err
+            | Ok (value, rest2) -> parseDict (Map.add key value acc) rest2
+        | Ok _ -> Error $"Dictionary key must be string"
         
 let decode (data: byte array) : Result<BencodeValue, string> =
     if Array.isEmpty data then
