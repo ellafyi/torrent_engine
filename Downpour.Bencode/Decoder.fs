@@ -1,7 +1,7 @@
 ﻿module Downpour.Bencode.Decoder
 
 open System
-open Downpour.Bencode
+open Types
 
 
 let (|MemRem|MemNil|) (mem: ReadOnlyMemory<byte>) =

@@ -1,5 +1,6 @@
 ﻿namespace Downpour.Bencode
 
+open Types
 
 [<RequireQualifiedAccess>]
 module Bencode =

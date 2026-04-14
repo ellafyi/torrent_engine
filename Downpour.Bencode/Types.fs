@@ -1,4 +1,4 @@
-﻿namespace Downpour.Bencode
+﻿module Downpour.Bencode.Types
 
 open System
 
