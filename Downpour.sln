@@ -12,9 +12,11 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Engine", "Downpour
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpout.Tracker", "Downpout.Tracker\Downpout.Tracker.fsproj", "{0879A147-329E-4BD5-9788-DEC70E02D2D6}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Storage", "Downpour.Storage\Downpour.Storage.fsproj", "{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Protocol", "Downpour.Protocol\Downpour.Protocol.fsproj", "{06FAEB2D-DD93-470B-9CF8-666D231D85FE}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Torrent.Tests", "Downpour.Torrent.Tests\Downpour.Torrent.Tests.fsproj", "{955019BD-9EFC-4DC1-A9FA-CC31D55315A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downpour.Storage", "Downpour.Storage\Downpour.Storage.csproj", "{07F961C2-078D-448F-A4C8-65E579BAB692}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,13 +48,17 @@ Global
 		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Release|Any CPU.Build.0 = Release|Any CPU
 		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{955019BD-9EFC-4DC1-A9FA-CC31D55315A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{955019BD-9EFC-4DC1-A9FA-CC31D55315A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{955019BD-9EFC-4DC1-A9FA-CC31D55315A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{955019BD-9EFC-4DC1-A9FA-CC31D55315A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07F961C2-078D-448F-A4C8-65E579BAB692}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07F961C2-078D-448F-A4C8-65E579BAB692}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07F961C2-078D-448F-A4C8-65E579BAB692}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07F961C2-078D-448F-A4C8-65E579BAB692}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
