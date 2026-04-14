@@ -6,6 +6,16 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Bencode", "Downpou
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Bencode.Tests", "Downpour.Bencode.Tests\Downpour.Bencode.Tests.fsproj", "{2A8347C7-0766-4557-8F0A-3D0FC40E99DC}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Torrent", "Downpour.Torrent\Downpour.Torrent.fsproj", "{9167F9E3-524B-45F0-BC11-310D5AE89FA1}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Engine", "Downpour.Engine\Downpour.Engine.fsproj", "{AE6F404C-EAC9-465E-95C7-71B6A54D1533}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpout.Tracker", "Downpout.Tracker\Downpout.Tracker.fsproj", "{0879A147-329E-4BD5-9788-DEC70E02D2D6}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Storage", "Downpour.Storage\Downpour.Storage.fsproj", "{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Protocol", "Downpour.Protocol\Downpour.Protocol.fsproj", "{06FAEB2D-DD93-470B-9CF8-666D231D85FE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +34,25 @@ Global
 		{2A8347C7-0766-4557-8F0A-3D0FC40E99DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A8347C7-0766-4557-8F0A-3D0FC40E99DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A8347C7-0766-4557-8F0A-3D0FC40E99DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9167F9E3-524B-45F0-BC11-310D5AE89FA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9167F9E3-524B-45F0-BC11-310D5AE89FA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9167F9E3-524B-45F0-BC11-310D5AE89FA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9167F9E3-524B-45F0-BC11-310D5AE89FA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE6F404C-EAC9-465E-95C7-71B6A54D1533}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE6F404C-EAC9-465E-95C7-71B6A54D1533}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE6F404C-EAC9-465E-95C7-71B6A54D1533}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE6F404C-EAC9-465E-95C7-71B6A54D1533}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0879A147-329E-4BD5-9788-DEC70E02D2D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35D32B84-11E7-446C-ACAA-18A2DD1F2BB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06FAEB2D-DD93-470B-9CF8-666D231D85FE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
