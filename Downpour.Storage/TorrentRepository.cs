@@ -1,42 +1,34 @@
-﻿using Downpour.Storage.Models;
+using Downpour.Storage.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Downpour.Storage;
 
-public class TorrentRepository
+public class TorrentRepository(DownpourDbContext context)
 {
-    private readonly DownpourDbContext _context;
-
-    public TorrentRepository(DownpourDbContext context)
+    public async Task AddTorrentAsync(Torrent torrent)
     {
-        _context = context;
-        _context.Database.EnsureCreated();
+        context.Torrents.Add(torrent);
+        await context.SaveChangesAsync();
     }
 
-    public void AddTorrent(Torrent torrent)
+    public async Task IncrementTransferStatsAsync(int torrentId, long uploaded, long downloaded)
     {
-        _context.Torrents.Add(torrent);
-        _context.SaveChanges();
-    }
-
-    public void UpdateTransferStats(int torrentId, long uploaded, long downloaded)
-    {
-        var torrent = _context.Torrents.Find(torrentId);
+        var torrent = await context.Torrents.FindAsync(torrentId);
         if (torrent == null) return;
         torrent.UploadedBytes += uploaded;
         torrent.DownloadedBytes += downloaded;
-        _context.SaveChanges();
+        await context.SaveChangesAsync();
     }
 
-    public IEnumerable<Torrent> GetAllTorrents()
+    public async Task<IEnumerable<Torrent>> GetAllTorrentsAsync()
     {
-        return _context.Torrents.ToList();
+        return await context.Torrents.ToListAsync();
     }
 
-    public (long TotalUploaded, long TotalDownloaded) GetGlobalState()
+    public async Task<(long TotalUploaded, long TotalDownloaded)> GetGlobalStateAsync()
     {
-        var totalUploaded = _context.Torrents.Sum(t => t.UploadedBytes);
-        var totalDownloaded = _context.Torrents.Sum(t => t.DownloadedBytes);
-
-        return (totalDownloaded, totalDownloaded);
+        var totalUploaded = await context.Torrents.SumAsync(t => t.UploadedBytes);
+        var totalDownloaded = await context.Torrents.SumAsync(t => t.DownloadedBytes);
+        return (totalUploaded, totalDownloaded);
     }
 }

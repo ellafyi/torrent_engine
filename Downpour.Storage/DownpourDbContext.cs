@@ -1,14 +1,9 @@
-﻿using Downpour.Storage.Models;
+using Downpour.Storage.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Downpour.Storage;
 
-public class DownpourDbContext : DbContext
+public class DownpourDbContext(DbContextOptions<DownpourDbContext> options) : DbContext(options)
 {
     public DbSet<Torrent> Torrents { get; set; } = null!;
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlite("Data Source=downpour.db;Cache=Shared");
-    }
 }
