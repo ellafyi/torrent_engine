@@ -1,5 +1,13 @@
 ﻿namespace Downpour.Protocol
 
+type PeerId = PeerId of byte[] // 20 bytes
+
+type HandshakeMessage =
+    { ReservedBytes: byte[]
+      InfoHash: byte[]
+      PeerId: byte[] }
+
+
 type PeerMessage =
     | KeepAlive
     | Choke
@@ -20,3 +28,12 @@ type PeerState =
       PeerChoking: bool
       PeerInterested: bool
       PeerBitfield: byte[] }
+
+
+module PeerState =
+    let initial =
+        { AmChoking = true
+          AmInterested = false
+          PeerChoking = true
+          PeerInterested = false
+          PeerBitfield = [||] }
