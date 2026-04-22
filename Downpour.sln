@@ -10,7 +10,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Torrent", "Downpou
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Engine", "Downpour.Engine\Downpour.Engine.fsproj", "{AE6F404C-EAC9-465E-95C7-71B6A54D1533}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpout.Tracker", "Downpout.Tracker\Downpout.Tracker.fsproj", "{0879A147-329E-4BD5-9788-DEC70E02D2D6}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Tracker", "Downpour.Tracker\Downpour.Tracker.fsproj", "{0879A147-329E-4BD5-9788-DEC70E02D2D6}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Protocol", "Downpour.Protocol\Downpour.Protocol.fsproj", "{06FAEB2D-DD93-470B-9CF8-666D231D85FE}"
 EndProject

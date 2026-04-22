@@ -7,4 +7,6 @@ public class Torrent
     public string InfoHash { get; set; } = string.Empty;
     public long UploadedBytes { get; set; }
     public long DownloadedBytes { get; set; }
+
+    public byte[]? TorrentFileData { get; set; }
 }
