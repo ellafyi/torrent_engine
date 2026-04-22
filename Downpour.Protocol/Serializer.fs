@@ -17,8 +17,7 @@ let serialize (message: PeerMessage) : byte[] =
     | NotInterested -> frame 3uy [||]
     | Have pieceIndex -> frame 4uy (int32BE pieceIndex)
     | Bitfield bits -> frame 5uy bits
-    // pieceIndex, blockOffset, <data>
     | Request(pi, bo, blockLength) -> frame 6uy (Array.concat [ int32BE pi; int32BE bo; int32BE blockLength ])
     | Piece(pi, bo, bytes) -> frame 7uy (Array.concat [ int32BE pi; int32BE bo; bytes ])
     | Cancel(pi, bo, blockLength) -> frame 8uy (Array.concat [ int32BE pi; int32BE bo; int32BE blockLength ])
-    | Port listenPort -> uint16BE listenPort
+    | Port listenPort -> frame 9uy (uint16BE listenPort)
