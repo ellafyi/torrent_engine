@@ -1,0 +1,347 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://www.bittorrent.org/beps/bep_0023.html
+Subject: bep_0023.rst_post
+Date: Thu, 23 Apr 2026 22:45:25 +0200
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--u5dgq9Fa5XxRxODmcufh1beVIekRcEtMXHnwqFb0kS----"
+
+
+------MultipartBoundary--u5dgq9Fa5XxRxODmcufh1beVIekRcEtMXHnwqFb0kS----
+Content-Type: text/html
+Content-ID: <frame-C0A722543CD78E61B66F8E061BB946C4@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.bittorrent.org/beps/bep_0023.html
+
+<!--?xml version=3D"1.0" encoding=3D"utf-8" ?--><!DOCTYPE html PUBLIC "-//W=
+3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1=
+-transitional.dtd"><html xmlns=3D"http://www.w3.org/1999/xhtml" xml:lang=3D=
+"en" lang=3D"en"><head><meta http-equiv=3D"Content-Type" content=3D"text/ht=
+ml; charset=3DUTF-8">
+
+<meta name=3D"generator" content=3D"Docutils 0.14: http://docutils.sourcefo=
+rge.net/">
+<title>bep_0023.rst_post</title>
+<meta name=3D"author" content=3D"David Harrison &lt;dave@bittorrent.com&gt;=
+">
+<link rel=3D"stylesheet" href=3D"https://www.bittorrent.org/css/bep.css" ty=
+pe=3D"text/css">
+</head>
+<body>
+<div class=3D"document">
+
+<div id=3D"upper" class=3D"clear">
+<div id=3D"wrap">
+<div id=3D"header">
+<h1><a href=3D"https://www.bittorrent.org/index.html">BitTorrent<span>.org<=
+/span></a></h1>
+</div>
+<div id=3D"nav">
+<ul>
+<li><a href=3D"https://www.bittorrent.org/index.html">Home</a></li>
+<li><a href=3D"https://www.bittorrent.org/introduction.html">For Users</a><=
+/li>
+<li><a href=3D"https://www.bittorrent.org/beps/bep_0000.html"><span>For Dev=
+elopers</span></a></li>
+<li><a href=3D"https://www.bittorrent.org/mailing_list.html">Developer mail=
+ing list</a> </li>
+<li><a href=3D"http://forum.bittorrent.org/"> Forums (archive) </a></li>
+</ul>
+</div> <!-- nav -->
+<!-- ### Begin Content ### -->
+<div id=3D"second">
+
+
+<table class=3D"docinfo" frame=3D"void" rules=3D"none">
+<colgroup><col class=3D"docinfo-name">
+<col class=3D"docinfo-content">
+</colgroup><tbody valign=3D"top">
+<tr class=3D"bep field"><th class=3D"docinfo-name">BEP:</th><td class=3D"fi=
+eld-body">23</td>
+</tr>
+<tr class=3D"title field"><th class=3D"docinfo-name">Title:</th><td class=
+=3D"field-body">Tracker Returns Compact Peer Lists</td>
+</tr>
+<tr><th class=3D"docinfo-name">Version:</th>
+<td>9c5c1dd1b372016e05af84fb34fccac6752ef54a</td></tr>
+<tr class=3D"last-modified field"><th class=3D"docinfo-name">Last-Modified:=
+</th><td class=3D"field-body">Thu Jul 21 10:45:38 2016 -0400</td>
+</tr>
+<tr><th class=3D"docinfo-name">Author:</th>
+<td>David Harrison &lt;<a class=3D"reference external" href=3D"mailto:dave%=
+40bittorrent.com">dave<span>@</span>bittorrent<span>.</span>com</a>&gt;</td=
+></tr>
+<tr><th class=3D"docinfo-name">Status:</th>
+<td>Accepted</td></tr>
+<tr class=3D"type field"><th class=3D"docinfo-name">Type:</th><td class=3D"=
+field-body">Standards track</td>
+</tr>
+<tr class=3D"content-type field"><th class=3D"docinfo-name">Content-Type:</=
+th><td class=3D"field-body">text/x-rst</td>
+</tr>
+<tr class=3D"created field"><th class=3D"docinfo-name">Created:</th><td cla=
+ss=3D"field-body">12-May-2008</td>
+</tr>
+<tr class=3D"post-history field"><th class=3D"docinfo-name">Post-History:</=
+th><td class=3D"field-body"></td>
+</tr>
+</tbody>
+</table>
+<div class=3D"section" id=3D"abstract">
+<h1>Abstract</h1>
+<p>To reduce the size of tracker responses and to reduce memory and
+computational requirements in trackers, trackers may return
+peers as a packed string rather than as a bencoded list.</p>
+<p>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+IETF RFC 2119 <a class=3D"footnote-reference" href=3D"https://www.bittorren=
+t.org/beps/bep_0023.html#rfc-2119" id=3D"id1">[3]</a>.</p>
+</div>
+<div class=3D"section" id=3D"overview">
+<h1>Overview</h1>
+<p>In BitTorrent as described in BEP 3 <a class=3D"footnote-reference" href=
+=3D"https://www.bittorrent.org/beps/bep_0023.html#bep-3" id=3D"id2">[1]</a>=
+, peers wishing to
+transfer a file contact a central tracker.  This tracker returns a
+list of peers that are currently transferring the file.  The list of
+peers is implemented as a list of bencoded dicts.  Each dict in the
+list contains three fields: <em>peer id</em>, <em>ip</em>, and <em>port</em=
+>.  The <em>peer
+id</em> is 20 bytes plus 3 bytes bencoding overhead.  The <em>ip</em> is a =
+string
+containing a domain name or an IP address, and an integer port number.
+The <em>ip</em> is variable length, but since in its longest form it is a
+domain name it cannot exceed 255 bytes <a class=3D"footnote-reference" href=
+=3D"https://www.bittorrent.org/beps/bep_0023.html#rfc-1034" id=3D"id3">[2]<=
+/a> plus 4 bytes
+bencoding overhead.  Bencoded integers are also variable length but
+since it is a port number, it cannot be more than 7 bytes including
+bencoding overhead.  Thus,</p>
+<pre class=3D"literal-block">total peer list length in bytes &lt; n * ( 23 =
++ 259 + 7 )
+</pre>
+<p>It is common now to use a compact format where each peer is represented
+using only 6 bytes.  The first 4 bytes contain the 32-bit ipv4 address.
+The remaining two bytes contain the port number.  Both address and port
+use network-byte order.</p>
+<p>It is SUGGESTED that trackers return compact format by default.
+By including <em>compact=3D0</em> in the announce URL, the client advises t=
+he
+tracker that is prefers the original format described in <a class=3D"footno=
+te-reference" href=3D"https://www.bittorrent.org/beps/bep_0023.html#bep-3" =
+id=3D"id4">[1]</a>, and
+analogously <em>compact=3D1</em> advises the tracker that the client prefer=
+s
+compact format.  However the <em>compact</em> key-value pair is only
+advisory: the tracker MAY return using either format.  <em>compact</em> is
+advisory so that trackers may support only the compact format.
+However, clients MUST continue to support both.</p>
+<p>For example,</p>
+<pre class=3D"literal-block">GET /announce?peer_id=3Daaaaaaaaaaaaaaaaaaaa&a=
+mp;info_hash=3Daaaaaaaaaaaaaaaaaaaa
+&amp;port=3D6881&amp;left=3D0&amp;downloaded=3D100&amp;uploaded=3D0&amp;com=
+pact=3D1
+</pre>
+<p>The compact format uses the same <em>peers</em> key in the bencoded trac=
+ker
+response, but the value is a bencoded string rather than a bencoded
+list.</p>
+<p>The peer id does not appear in the compact format.  The format has been
+in use for years and the lack of a peer id has posed no problems.</p>
+<p>This compact format is supported by BitTorrent mainline, Azureus,
+libtorrent, uTorrent, and probably most other clients.</p>
+</div>
+<div class=3D"section" id=3D"references">
+<h1>References</h1>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"bep-3" rules=3D"non=
+e">
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label">[1]</td><td><em>(<a class=3D"fn-backref" href=3D"ht=
+tps://www.bittorrent.org/beps/bep_0023.html#id2">1</a>, <a class=3D"fn-back=
+ref" href=3D"https://www.bittorrent.org/beps/bep_0023.html#id4">2</a>)</em>=
+ BEP_0003. The BitTorrent Protocol Specification. Cohen.
+(<a class=3D"reference external" href=3D"http://www.bittorrent.org/beps/bep=
+_0003.html">http://www.bittorrent.org/beps/bep_0003.html</a>)</td></tr>
+</tbody>
+</table>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"rfc-1034" rules=3D"=
+none">
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label"><a class=3D"fn-backref" href=3D"https://www.bittorr=
+ent.org/beps/bep_0023.html#id3">[2]</a></td><td>RFC-1034. DOMAIN NAMES - CO=
+NCEPTS AND FACILITIES. Mockapetris,
+November 1987. (<a class=3D"reference external" href=3D"http://tools.ietf.o=
+rg/html/rfc1034">http://tools.ietf.org/html/rfc1034</a>)</td></tr>
+</tbody>
+</table>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"rfc-2119" rules=3D"=
+none">
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label"><a class=3D"fn-backref" href=3D"https://www.bittorr=
+ent.org/beps/bep_0023.html#id1">[3]</a></td><td>RFC-2119. (<a class=3D"refe=
+rence external" href=3D"http://www.ietf.org/rfc/rfc2119.txt">http://www.iet=
+f.org/rfc/rfc2119.txt</a>)</td></tr>
+</tbody>
+</table>
+</div>
+<div class=3D"section" id=3D"copyright">
+<h1>Copyright</h1>
+<p>This document has been placed in the public domain.</p>
+<!-- Local Variables:
+mode: indented-text
+indent-tabs-mode: nil
+sentence-end-double-space: t
+fill-column: 70
+coding: utf-8
+End: -->
+</div>
+
+</div>
+	<div id=3D"footer">
+<hr>
+</div>
+
+</div>
+
+
+</div></div><protonpass-root-4b6c data-protonpass-role=3D"root" data-proton=
+pass-theme=3D"os"><template shadowmode=3D"closed"></template></protonpass-r=
+oot-4b6c></body></html>
+------MultipartBoundary--u5dgq9Fa5XxRxODmcufh1beVIekRcEtMXHnwqFb0kS----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.bittorrent.org/css/bep.css
+
+@charset "utf-8";
+
+body { margin: 0px; padding: 0px; color: rgb(51, 51, 51); background-color:=
+ rgb(102, 102, 102); font: 10px / 1.5em "Trebuchet MS", sans-serif; text-al=
+ign: center; }
+
+#upper { margin: 0px; padding: 60px 0px; background: url("../img/bg.gif") 0=
+px 0px repeat-x rgb(255, 255, 255); }
+
+#wrap { margin: 0px auto; width: 700px; text-align: left; }
+
+#header { margin: 0px; width: 100%; border-bottom: 2px solid rgb(238, 238, =
+238); }
+
+#nav { margin: 0px 0px 40px; padding: 0.5em 0px; text-align: right; }
+
+#nav ul { list-style: none; padding: 0px; margin: 0px; }
+
+#nav li { margin-left: 1em; padding: 0px; display: inline; font-size: 1.5em=
+; font-weight: bold; }
+
+#nav li span { color: rgb(255, 102, 0); }
+
+#home-l ul, #home-c ul, #home-r ul { margin: 0px 0px 1.5em; padding: 0px 0p=
+x 10px 2px; }
+
+#home-l li, #home-c li, #home-r li { list-style-type: none; margin: 1em 0px=
+; padding: 0px 0px 0px 25px; font-size: 1.5em; line-height: 1.2em; backgrou=
+nd: url("../img/li.gif") 0px 0px no-repeat; }
+
+#first p { font-size: 3pt; line-height: 80pt; }
+
+#second li, #second dt { margin: 0.4em 0px; font-size: 10pt; line-height: 1=
+2pt; }
+
+#second dd { margin-bottom: 7px; font-size: 1.2em; line-height: 1.5em; }
+
+#intro { margin: 0px 0px 2.5em; padding: 0px 3em; font-size: 2.5em; line-he=
+ight: 1.2em; color: rgb(0, 0, 0); }
+
+#footer { margin: 0px; padding: 0px; height: 60px; background: url("../img/=
+fbg.gif") 0px 0px repeat-x; }
+
+#home-l, #home-c, #home-r { margin: 0px 10px; width: 210px; float: left; }
+
+#blog { padding: 0px 7em; }
+
+.field-name, .docinfo-name { margin: 0px; font-size: 1.2em; text-align: rig=
+ht; vertical-align: middle; }
+
+h1 { margin: 1em 0px 0.1em; font-size: 2em; font-weight: normal; letter-spa=
+cing: -1px; }
+
+h1 span { font-weight: bold; color: rgb(0, 153, 255); }
+
+h2 { margin: 0.5em 0px 0px; padding: 0px 0px 0.5em; font-size: 1.6em; }
+
+#second h2, #blog h2 { margin: 0px; padding: 0px 0px 0.5em; font-size: 1.6e=
+m; font-weight: normal; border: 0px; }
+
+h3 { font-size: 1.3em; line-height: 1em; }
+
+h4 { font-size: 1.1em; text-transform: uppercase; }
+
+h5 { font-size: 1.1em; color: rgb(102, 102, 102); }
+
+#second p, #blog p { font-size: 1.3em; line-height: 1.5em; }
+
+#second li p, #second dd p { font-size: inherit; line-height: inherit; }
+
+#footer p { margin: 0px; padding: 2em 0px; color: rgb(255, 255, 255); }
+
+table { border: 0px; margin-left: 4em; }
+
+td { font-size: 9pt; padding: 10px; }
+
+td.shade { background-color: rgb(238, 238, 238); }
+
+#blog .post { padding: 5px 0px; border-top: 2px solid rgb(255, 255, 204); f=
+ont-size: 1em; color: rgb(153, 153, 153); }
+
+.clear::after { content: "."; display: block; height: 0px; font-size: 0px; =
+clear: both; visibility: hidden; }
+
+.clear { display: inline-table; }
+
+* html .clear { height: 1%; }
+
+.clear { display: block; }
+
+.img-r { float: right; width: 300px; padding-bottom: 10px; margin: 0px 0px =
+0px 20px; }
+
+.img-l { float: left; width: 300px; padding-bottom: 10px; margin: 0px 20px =
+0px 0px; }
+
+#second .img-l p, #second .img-r p { color: rgb(0, 153, 255); font-size: 1.=
+5em; text-align: center; }
+
+hr { display: none; }
+
+code { color: rgb(153, 102, 51); }
+
+a { color: rgb(51, 68, 85); text-decoration: none; border-bottom: 1px solid=
+ rgb(238, 238, 238); }
+
+#second a { color: rgb(0, 119, 204); border-bottom: 1px dotted rgb(0, 119, =
+204); }
+
+#second a:visited { color: rgb(102, 119, 136); border-bottom-color: rgb(102=
+, 119, 136); }
+
+a:visited { color: rgb(102, 119, 136); }
+
+#nav a:visited { color: rgb(51, 68, 85); }
+
+a:hover, #nav a:hover { color: rgb(255, 102, 0); }
+
+h1 a, h1 a:visited, h1 a:hover { color: rgb(102, 102, 102); border: 0px; }
+
+a img { border: 0px; }
+
+.literal-block { margin-left: 4em; }
+
+div.figure { margin: 2em 4em 1em; text-align: center; font-size: 7pt; }
+
+p.caption { text-align: left; }
+------MultipartBoundary--u5dgq9Fa5XxRxODmcufh1beVIekRcEtMXHnwqFb0kS------

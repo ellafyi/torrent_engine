@@ -1,0 +1,543 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: https://www.bittorrent.org/beps/bep_0015.html
+Subject: bep_0015.rst_post
+Date: Thu, 23 Apr 2026 22:48:24 +0200
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--GmH98SKCZgCpjWC25bEeZhHvmjAFBuZIXuepbyeJDk----"
+
+
+------MultipartBoundary--GmH98SKCZgCpjWC25bEeZhHvmjAFBuZIXuepbyeJDk----
+Content-Type: text/html
+Content-ID: <frame-3763AD5B1E0029051CF45E27EE6BB70D@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.bittorrent.org/beps/bep_0015.html
+
+<!--?xml version=3D"1.0" encoding=3D"utf-8" ?--><!DOCTYPE html PUBLIC "-//W=
+3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1=
+-transitional.dtd"><html xmlns=3D"http://www.w3.org/1999/xhtml" xml:lang=3D=
+"en" lang=3D"en"><head><meta http-equiv=3D"Content-Type" content=3D"text/ht=
+ml; charset=3DUTF-8">
+
+<meta name=3D"generator" content=3D"Docutils 0.14: http://docutils.sourcefo=
+rge.net/">
+<title>bep_0015.rst_post</title>
+<meta name=3D"author" content=3D"Olaf van der Spek &lt;olafvdspek@gmail.com=
+&gt;">
+<link rel=3D"stylesheet" href=3D"https://www.bittorrent.org/css/bep.css" ty=
+pe=3D"text/css">
+</head>
+<body>
+<div class=3D"document">
+
+<div id=3D"upper" class=3D"clear">
+<div id=3D"wrap">
+<div id=3D"header">
+<h1><a href=3D"https://www.bittorrent.org/index.html">BitTorrent<span>.org<=
+/span></a></h1>
+</div>
+<div id=3D"nav">
+<ul>
+<li><a href=3D"https://www.bittorrent.org/index.html">Home</a></li>
+<li><a href=3D"https://www.bittorrent.org/introduction.html">For Users</a><=
+/li>
+<li><a href=3D"https://www.bittorrent.org/beps/bep_0000.html"><span>For Dev=
+elopers</span></a></li>
+<li><a href=3D"https://www.bittorrent.org/mailing_list.html">Developer mail=
+ing list</a> </li>
+<li><a href=3D"http://forum.bittorrent.org/"> Forums (archive) </a></li>
+</ul>
+</div> <!-- nav -->
+<!-- ### Begin Content ### -->
+<div id=3D"second">
+
+
+<table class=3D"docinfo" frame=3D"void" rules=3D"none">
+<colgroup><col class=3D"docinfo-name">
+<col class=3D"docinfo-content">
+</colgroup><tbody valign=3D"top">
+<tr class=3D"bep field"><th class=3D"docinfo-name">BEP:</th><td class=3D"fi=
+eld-body">15</td>
+</tr>
+<tr class=3D"title field"><th class=3D"docinfo-name">Title:</th><td class=
+=3D"field-body">UDP Tracker Protocol for BitTorrent</td>
+</tr>
+<tr><th class=3D"docinfo-name">Version:</th>
+<td>023256c7581a4bed356e47caf8632be2834211bd</td></tr>
+<tr class=3D"last-modified field"><th class=3D"docinfo-name">Last-Modified:=
+</th><td class=3D"field-body">Thu Jan 12 12:29:12 2017 -0800</td>
+</tr>
+<tr><th class=3D"docinfo-name">Author:</th>
+<td>Olaf van der Spek &lt;<a class=3D"reference external" href=3D"mailto:ol=
+afvdspek%40gmail.com">olafvdspek<span>@</span>gmail<span>.</span>com</a>&gt=
+;</td></tr>
+<tr><th class=3D"docinfo-name">Status:</th>
+<td>Accepted</td></tr>
+<tr class=3D"type field"><th class=3D"docinfo-name">Type:</th><td class=3D"=
+field-body">Standards Track</td>
+</tr>
+<tr class=3D"created field"><th class=3D"docinfo-name">Created:</th><td cla=
+ss=3D"field-body">13-Feb-2008</td>
+</tr>
+<tr class=3D"post-history field"><th class=3D"docinfo-name">Post-History:</=
+th><td class=3D"field-body">06-Nov-2016 (<a class=3D"reference external" hr=
+ef=3D"mailto:the8472.bep%40infinite-source.de">the8472<span>.</span>bep<spa=
+n>@</span>infinite-source<span>.</span>de</a>), specified IPv6 format.</td>
+</tr>
+</tbody>
+</table>
+<div class=3D"section" id=3D"introduction">
+<h1>Introduction</h1>
+<p>To discover other peers in a swarm a client announces it's existance
+to a tracker.  The HTTP protocol is used and a typical request
+contains the following parameters: info_hash, key, peer_id, port,
+downloaded, left, uploaded and compact.  A response contains a list of
+peers (host and port) and some other information.  The request and
+response are both quite short.  Since TCP is used, a connection has to
+be opened and closed, introducing additional overhead.</p>
+</div>
+<div class=3D"section" id=3D"overhead">
+<h1>Overhead</h1>
+<p>Using HTTP introduces significant overhead. There's overhead at the
+ethernet layer (14 bytes per packet), at the IP layer (20 bytes per
+packet), at the TCP layer (20 bytes per packet) and at the HTTP layer.
+About 10 packets are used for a request plus response containing 50
+peers and the total number of bytes used is about 1206 [1].  This
+overhead can be reduced significantly by using a UDP based
+protocol. The protocol proposed here uses 4 packets and about 618
+bytes, reducing traffic by 50%.  For a client, saving 1 kbyte every
+hour isn't significant, but for a tracker serving a million peers,
+reducing traffic by 50% matters a lot.  An additional advantage is
+that a UDP based binary protocol doesn't require a complex parser and
+no connection handling, reducing the complexity of tracker code and
+increasing it's performance.</p>
+</div>
+<div class=3D"section" id=3D"udp-connections-spoofing">
+<h1>UDP connections / spoofing</h1>
+<p>In the ideal case, only 2 packets would be necessary. However, it is
+possible to spoof the source address of a UDP packet.  The tracker has
+to ensure this doesn't occur, so it calculates a value (connection_id)
+and sends it to the client.  If the client spoofed it's source
+address, it won't receive this value (unless it's sniffing the
+network).  The connection_id will then be send to the tracker again in
+packet 3. The tracker verifies the connection_id and ignores the
+request if it doesn't match.  Connection IDs should not be guessable
+by the client. This is comparable to a TCP handshake and a syn cookie
+like approach can be used to storing the connection IDs on the tracker
+side.  A connection ID can be used for multiple requests. A client can
+use a connection ID until one minute after it has received
+it. Trackers should accept the connection ID until two minutes after
+it has been send.</p>
+</div>
+<div class=3D"section" id=3D"time-outs">
+<h1>Time outs</h1>
+<p>UDP is an 'unreliable' protocol. This means it doesn't retransmit lost
+packets itself. The application is responsible for this.  If a
+response is not received after 15 * 2 ^ n seconds, the client should
+retransmit the request, where n starts at 0 and is increased up to 8
+(3840 seconds) after every retransmission.  Note that it is necessary
+to rerequest a connection ID when it has expired.</p>
+</div>
+<div class=3D"section" id=3D"examples">
+<h1>Examples</h1>
+<p>Normal announce:</p>
+<pre class=3D"literal-block">t =3D 0: connect request
+t =3D 1: connect response
+t =3D 2: announce request
+t =3D 3: announce response
+</pre>
+<p>Connect times out:</p>
+<pre class=3D"literal-block">t =3D 0: connect request
+t =3D 15: connect request
+t =3D 45: connect request
+t =3D 105: connect request
+etc
+</pre>
+<p>Announce times out:</p>
+<pre class=3D"literal-block">t =3D 0:
+t =3D 0: connect request
+t =3D 1: connect response
+t =3D 2: announce request
+t =3D 17: announce request
+t =3D 47: announce request
+t =3D 107: connect request (because connection ID expired)
+t =3D 227: connect request
+etc
+</pre>
+<p>Multiple requests:</p>
+<pre class=3D"literal-block">t =3D 0: connect request
+t =3D 1: connect response
+t =3D 2: announce request
+t =3D 3: announce response
+t =3D 4: announce request
+t =3D 5: announce response
+t =3D 60: announce request
+t =3D 61: announce response
+t =3D 62: connect request
+t =3D 63: connect response
+t =3D 64: announce request
+t =3D 64: scrape request
+t =3D 64: scrape request
+t =3D 64: announce request
+t =3D 65: announce response
+t =3D 66: announce response
+t =3D 67: scrape response
+t =3D 68: scrape response
+</pre>
+</div>
+<div class=3D"section" id=3D"udp-tracker-protocol">
+<h1>UDP tracker protocol</h1>
+<p>All values are send in network byte order (big endian). Do not expect
+packets to be exactly of a certain size. Future extensions could
+increase the size of packets.</p>
+<div class=3D"section" id=3D"connect">
+<h2>Connect</h2>
+<p>Before announcing or scraping, you have to obtain a connection ID.</p>
+<ol class=3D"arabic simple">
+<li>Choose a random transaction ID.</li>
+<li>Fill the connect request structure.</li>
+<li>Send the packet.</li>
+</ol>
+<p>connect request:</p>
+<pre class=3D"literal-block">Offset  Size            Name            Value
+0       64-bit integer  protocol_id     0x41727101980 // magic constant
+8       32-bit integer  action          0 // connect
+12      32-bit integer  transaction_id
+16
+</pre>
+<ol class=3D"arabic simple">
+<li>Receive the packet.</li>
+<li>Check whether the packet is at least 16 bytes.</li>
+<li>Check whether the transaction ID is equal to the one you chose.</li>
+<li>Check whether the action is connect.</li>
+<li>Store the connection ID for future use.</li>
+</ol>
+<p>connect response:</p>
+<pre class=3D"literal-block">Offset  Size            Name            Value
+0       32-bit integer  action          0 // connect
+4       32-bit integer  transaction_id
+8       64-bit integer  connection_id
+16
+</pre>
+</div>
+<div class=3D"section" id=3D"announce">
+<h2>Announce</h2>
+<ol class=3D"arabic simple">
+<li>Choose a random transaction ID.</li>
+<li>Fill the announce request structure.</li>
+<li>Send the packet.</li>
+</ol>
+<p>IPv4 announce request:</p>
+<pre class=3D"literal-block">Offset  Size    Name    Value
+0       64-bit integer  connection_id
+8       32-bit integer  action          1 // announce
+12      32-bit integer  transaction_id
+16      20-byte string  info_hash
+36      20-byte string  peer_id
+56      64-bit integer  downloaded
+64      64-bit integer  left
+72      64-bit integer  uploaded
+80      32-bit integer  event           0 // 0: none; 1: completed; 2: star=
+ted; 3: stopped
+84      32-bit integer  IP address      0 // default
+88      32-bit integer  key
+92      32-bit integer  num_want        -1 // default
+96      16-bit integer  port
+98
+</pre>
+<ol class=3D"arabic simple">
+<li>Receive the packet.</li>
+<li>Check whether the packet is at least 20 bytes.</li>
+<li>Check whether the transaction ID is equal to the one you chose.</li>
+<li>Check whether the action is announce.</li>
+<li>Do not announce again until interval seconds have passed or an event ha=
+s occurred.</li>
+</ol>
+<p>Do note that most trackers will only honor the <tt class=3D"docutils lit=
+eral">IP address</tt> field under limited circumstances.</p>
+<p>IPv4 announce response:</p>
+<pre class=3D"literal-block">Offset      Size            Name            Va=
+lue
+0           32-bit integer  action          1 // announce
+4           32-bit integer  transaction_id
+8           32-bit integer  interval
+12          32-bit integer  leechers
+16          32-bit integer  seeders
+20 + 6 * n  32-bit integer  IP address
+24 + 6 * n  16-bit integer  TCP port
+20 + 6 * N
+</pre>
+<div class=3D"section" id=3D"ipv6">
+<h3>IPv6</h3>
+<p>IPv6 announces have the same structure as v4 ones, including the used <t=
+t class=3D"docutils literal">action</tt> number except that the stride size=
+ of <tt class=3D"docutils literal">&lt;IP address, TCP port&gt;</tt> pairs =
+in the response is 18 bytes instead of 6.</p>
+<p>That means the <tt class=3D"docutils literal">IP address</tt> field in t=
+he request remains 32bits wide which makes this field not usable under IPv6=
+ and thus should always be set to 0.</p>
+<p>Which format is used is determined by the address family of the underlyi=
+ng UDP packet. I.e. packets from a v4 address use the v4 format, those from=
+ a v6 address use the v6 format.</p>
+<p>Clients that resolve hostnames to v4 and v6 and then announce to both sh=
+ould use the same <tt class=3D"docutils literal">key</tt> for both so that =
+trackers that care about accurate statistics-keeping can match the two anno=
+unces.</p>
+</div>
+</div>
+<div class=3D"section" id=3D"scrape">
+<h2>Scrape</h2>
+<p>Up to about 74 torrents can be scraped at once. A full scrape can't be d=
+one with this protocol.</p>
+<ol class=3D"arabic simple">
+<li>Choose a random transaction ID.</li>
+<li>Fill the scrape request structure.</li>
+<li>Send the packet.</li>
+</ol>
+<p>scrape request:</p>
+<pre class=3D"literal-block">Offset          Size            Name          =
+  Value
+0               64-bit integer  connection_id
+8               32-bit integer  action          2 // scrape
+12              32-bit integer  transaction_id
+16 + 20 * n     20-byte string  info_hash
+16 + 20 * N
+</pre>
+<ol class=3D"arabic simple">
+<li>Receive the packet.</li>
+<li>Check whether the packet is at least 8 bytes.</li>
+<li>Check whether the transaction ID is equal to the one you chose.</li>
+<li>Check whether the action is scrape.</li>
+</ol>
+<p>scrape response:</p>
+<pre class=3D"literal-block">Offset      Size            Name            Va=
+lue
+0           32-bit integer  action          2 // scrape
+4           32-bit integer  transaction_id
+8 + 12 * n  32-bit integer  seeders
+12 + 12 * n 32-bit integer  completed
+16 + 12 * n 32-bit integer  leechers
+8 + 12 * N
+</pre>
+<p>If the tracker encounters an error, it might send an error packet.</p>
+<ol class=3D"arabic simple">
+<li>Receive the packet.</li>
+<li>Check whether the packet is at least 8 bytes.</li>
+<li>Check whether the transaction ID is equal to the one you chose.</li>
+</ol>
+</div>
+<div class=3D"section" id=3D"errors">
+<h2>Errors</h2>
+<p>error response:</p>
+<pre class=3D"literal-block">Offset  Size            Name            Value
+0       32-bit integer  action          3 // error
+4       32-bit integer  transaction_id
+8       string  message
+</pre>
+</div>
+</div>
+<div class=3D"section" id=3D"existing-implementations">
+<h1>Existing implementations</h1>
+<p>Azureus, libtorrent [2], opentracker [3], XBT Client and XBT Tracker
+support this protocol.</p>
+</div>
+<div class=3D"section" id=3D"extensions">
+<h1>Extensions</h1>
+<p>Extension bits or a version field are not included. Clients and
+trackers should not assume packets to be of a certain size. This way,
+additional fields can be added without breaking compatibility.</p>
+<p>See BEP 41 [4] for an extension negotiation protocol.</p>
+</div>
+<div class=3D"section" id=3D"references-and-footnotes">
+<h1>References and Footnotes</h1>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"id1" rules=3D"none"=
+>
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label">[1]</td><td><a class=3D"reference external" href=3D=
+"http://xbtt.sourceforge.net/udp_tracker_protocol.html">http://xbtt.sourcef=
+orge.net/udp_tracker_protocol.html</a></td></tr>
+</tbody>
+</table>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"id2" rules=3D"none"=
+>
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label">[2]</td><td><a class=3D"reference external" href=3D=
+"http://www.rasterbar.com/products/libtorrent/udp_tracker_protocol.html">ht=
+tp://www.rasterbar.com/products/libtorrent/udp_tracker_protocol.html</a></t=
+d></tr>
+</tbody>
+</table>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"id3" rules=3D"none"=
+>
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label">[3]</td><td><a class=3D"reference external" href=3D=
+"http://opentracker.blog.h3q.com/">http://opentracker.blog.h3q.com/</a></td=
+></tr>
+</tbody>
+</table>
+<table class=3D"docutils footnote" frame=3D"void" id=3D"id4" rules=3D"none"=
+>
+<colgroup><col class=3D"label"><col></colgroup>
+<tbody valign=3D"top">
+<tr><td class=3D"label">[4]</td><td><a class=3D"reference external" href=3D=
+"http://bittorrent.org/beps/bep_0041.html">http://bittorrent.org/beps/bep_0=
+041.html</a></td></tr>
+</tbody>
+</table>
+<!-- Local Variables:
+mode: indented-text
+indent-tabs-mode: nil
+sentence-end-double-space: t
+fill-column: 70
+coding: utf-8
+End: -->
+</div>
+
+</div>
+	<div id=3D"footer">
+<hr>
+</div>
+
+</div>
+
+
+</div></div><protonpass-root-9f63 data-protonpass-role=3D"root" data-proton=
+pass-theme=3D"os"><template shadowmode=3D"closed"></template></protonpass-r=
+oot-9f63></body></html>
+------MultipartBoundary--GmH98SKCZgCpjWC25bEeZhHvmjAFBuZIXuepbyeJDk----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://www.bittorrent.org/css/bep.css
+
+@charset "utf-8";
+
+body { margin: 0px; padding: 0px; color: rgb(51, 51, 51); background-color:=
+ rgb(102, 102, 102); font: 10px / 1.5em "Trebuchet MS", sans-serif; text-al=
+ign: center; }
+
+#upper { margin: 0px; padding: 60px 0px; background: url("../img/bg.gif") 0=
+px 0px repeat-x rgb(255, 255, 255); }
+
+#wrap { margin: 0px auto; width: 700px; text-align: left; }
+
+#header { margin: 0px; width: 100%; border-bottom: 2px solid rgb(238, 238, =
+238); }
+
+#nav { margin: 0px 0px 40px; padding: 0.5em 0px; text-align: right; }
+
+#nav ul { list-style: none; padding: 0px; margin: 0px; }
+
+#nav li { margin-left: 1em; padding: 0px; display: inline; font-size: 1.5em=
+; font-weight: bold; }
+
+#nav li span { color: rgb(255, 102, 0); }
+
+#home-l ul, #home-c ul, #home-r ul { margin: 0px 0px 1.5em; padding: 0px 0p=
+x 10px 2px; }
+
+#home-l li, #home-c li, #home-r li { list-style-type: none; margin: 1em 0px=
+; padding: 0px 0px 0px 25px; font-size: 1.5em; line-height: 1.2em; backgrou=
+nd: url("../img/li.gif") 0px 0px no-repeat; }
+
+#first p { font-size: 3pt; line-height: 80pt; }
+
+#second li, #second dt { margin: 0.4em 0px; font-size: 10pt; line-height: 1=
+2pt; }
+
+#second dd { margin-bottom: 7px; font-size: 1.2em; line-height: 1.5em; }
+
+#intro { margin: 0px 0px 2.5em; padding: 0px 3em; font-size: 2.5em; line-he=
+ight: 1.2em; color: rgb(0, 0, 0); }
+
+#footer { margin: 0px; padding: 0px; height: 60px; background: url("../img/=
+fbg.gif") 0px 0px repeat-x; }
+
+#home-l, #home-c, #home-r { margin: 0px 10px; width: 210px; float: left; }
+
+#blog { padding: 0px 7em; }
+
+.field-name, .docinfo-name { margin: 0px; font-size: 1.2em; text-align: rig=
+ht; vertical-align: middle; }
+
+h1 { margin: 1em 0px 0.1em; font-size: 2em; font-weight: normal; letter-spa=
+cing: -1px; }
+
+h1 span { font-weight: bold; color: rgb(0, 153, 255); }
+
+h2 { margin: 0.5em 0px 0px; padding: 0px 0px 0.5em; font-size: 1.6em; }
+
+#second h2, #blog h2 { margin: 0px; padding: 0px 0px 0.5em; font-size: 1.6e=
+m; font-weight: normal; border: 0px; }
+
+h3 { font-size: 1.3em; line-height: 1em; }
+
+h4 { font-size: 1.1em; text-transform: uppercase; }
+
+h5 { font-size: 1.1em; color: rgb(102, 102, 102); }
+
+#second p, #blog p { font-size: 1.3em; line-height: 1.5em; }
+
+#second li p, #second dd p { font-size: inherit; line-height: inherit; }
+
+#footer p { margin: 0px; padding: 2em 0px; color: rgb(255, 255, 255); }
+
+table { border: 0px; margin-left: 4em; }
+
+td { font-size: 9pt; padding: 10px; }
+
+td.shade { background-color: rgb(238, 238, 238); }
+
+#blog .post { padding: 5px 0px; border-top: 2px solid rgb(255, 255, 204); f=
+ont-size: 1em; color: rgb(153, 153, 153); }
+
+.clear::after { content: "."; display: block; height: 0px; font-size: 0px; =
+clear: both; visibility: hidden; }
+
+.clear { display: inline-table; }
+
+* html .clear { height: 1%; }
+
+.clear { display: block; }
+
+.img-r { float: right; width: 300px; padding-bottom: 10px; margin: 0px 0px =
+0px 20px; }
+
+.img-l { float: left; width: 300px; padding-bottom: 10px; margin: 0px 20px =
+0px 0px; }
+
+#second .img-l p, #second .img-r p { color: rgb(0, 153, 255); font-size: 1.=
+5em; text-align: center; }
+
+hr { display: none; }
+
+code { color: rgb(153, 102, 51); }
+
+a { color: rgb(51, 68, 85); text-decoration: none; border-bottom: 1px solid=
+ rgb(238, 238, 238); }
+
+#second a { color: rgb(0, 119, 204); border-bottom: 1px dotted rgb(0, 119, =
+204); }
+
+#second a:visited { color: rgb(102, 119, 136); border-bottom-color: rgb(102=
+, 119, 136); }
+
+a:visited { color: rgb(102, 119, 136); }
+
+#nav a:visited { color: rgb(51, 68, 85); }
+
+a:hover, #nav a:hover { color: rgb(255, 102, 0); }
+
+h1 a, h1 a:visited, h1 a:hover { color: rgb(102, 102, 102); border: 0px; }
+
+a img { border: 0px; }
+
+.literal-block { margin-left: 4em; }
+
+div.figure { margin: 2em 4em 1em; text-align: center; font-size: 7pt; }
+
+p.caption { text-align: left; }
+------MultipartBoundary--GmH98SKCZgCpjWC25bEeZhHvmjAFBuZIXuepbyeJDk------
