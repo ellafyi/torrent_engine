@@ -6,7 +6,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Library.fs"/>
+        <Compile Include="Types.fs"/>
+        <Compile Include="HttpTracker.fs"/>
+        <Compile Include="UdpTracker.fs"/>
+        <Compile Include="Tracker.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Downpour.Bencode\Downpour.Bencode.fsproj"/>
     </ItemGroup>
 
 </Project>
