@@ -4,7 +4,7 @@ open Xunit
 open Downpour.Protocol
 
 let private sampleInfoHash = Array.init 20 byte
-let private samplePeerId   = Array.init 20 (fun i -> byte (i + 20))
+let private samplePeerId = Array.init 20 (fun i -> byte (i + 20))
 
 [<Fact>]
 let ``HS-01 Round-trip preserves InfoHash and PeerId`` () =

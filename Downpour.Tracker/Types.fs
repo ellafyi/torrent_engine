@@ -28,7 +28,7 @@ type AnnounceResponse =
       Leechers: int
       Peers: PeerInfo list }
 
-type TrackerError =
+type TrackerError = 
     | TrackerFailure of reason: string
     | NetworkError of message: string
     | ParseError of message: string
