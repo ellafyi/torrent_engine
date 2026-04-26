@@ -10,7 +10,7 @@ open Downpour.Bencode
 let private percentEncode (bytes: byte[]) =
     bytes |> Array.map (sprintf "%%%02x") |> String.concat ""
 
-let private buildUrl (baseUrl: string) (req: AnnounceRequest) =
+let internal buildUrl (baseUrl: string) (req: AnnounceRequest) =
     let eventParam =
         match req.Event with
         | AnnounceEvent.None -> Option.None
@@ -50,7 +50,7 @@ let private traverseResults (f: 'a -> Result<'b, TrackerError>) (xs: 'a list) : 
         xs
         (Ok [])
 
-let private parseCompactPeers (bytes: byte[]) : Result<PeerInfo list, TrackerError> =
+let internal parseCompactPeers (bytes: byte[]) : Result<PeerInfo list, TrackerError> =
     if bytes.Length % 6 <> 0 then
         Error(ParseError $"Compact peer list length {bytes.Length} is not a multiple of 6")
     else
@@ -76,7 +76,7 @@ let private parseDictPeer (entry: BencodeValue) : Result<PeerInfo, TrackerError>
         | _ -> Error(ParseError "Peer entry missing ip or port")
     | _ -> Error(ParseError "Peer entry is not a dictionary")
 
-let private parseResponse (bytes: byte[]) : Result<AnnounceResponse, TrackerError> =
+let internal parseResponse (bytes: byte[]) : Result<AnnounceResponse, TrackerError> =
     match Bencode.parse bytes with
     | Error e -> Error(ParseError e)
     | Ok(BencodeValue.Dictionary dict) ->
