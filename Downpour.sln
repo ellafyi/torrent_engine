@@ -28,6 +28,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Protocol.Tests", "
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Tracker.Tests", "Downpour.Tracker.Tests\Downpour.Tracker.Tests.fsproj", "{DB6909E9-7F0F-448A-B286-1879B6AAB86B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downpour.Console", "Downpour.Console\Downpour.Console.csproj", "{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,5 +80,9 @@ Global
 		{DB6909E9-7F0F-448A-B286-1879B6AAB86B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB6909E9-7F0F-448A-B286-1879B6AAB86B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB6909E9-7F0F-448A-B286-1879B6AAB86B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

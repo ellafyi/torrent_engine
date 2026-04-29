@@ -109,25 +109,25 @@ let private writeLoop
         return! loop DateTime.UtcNow
     }
 
-let private startLoops
+// Creates the write agent but does not start the read loop.
+// Returns the peer and a function the caller must invoke to begin receiving messages.
+// This allows the caller to register the peer before any FromPeer events can arrive.
+let private makeAgent
     (client: TcpClient)
     (stream: NetworkStream)
     (peerId: byte[])
     (notify: PeerEvent -> unit)
-    : PeerAgent =
+    : PeerAgent * (unit -> unit) =
     let agent = MailboxProcessor<PeerCommand>.Start(writeLoop stream notify)
-    Async.Start(readLoop stream notify)
-
-    { PeerId = peerId
-      Post = agent.Post
-      Dispose = fun () -> client.Dispose() }
+    let startRead () = Async.Start(readLoop stream notify)
+    { PeerId = peerId; Post = agent.Post; Dispose = fun () -> client.Dispose() }, startRead
 
 let create
     (client: TcpClient)
     (infoHash: byte[])
     (ourPeerId: byte[])
     (notify: PeerEvent -> unit)
-    : Async<Result<PeerAgent, string>> =
+    : Async<Result<PeerAgent * (unit -> unit), string>> =
     async {
         try
             let stream = client.GetStream()
@@ -146,12 +146,12 @@ let create
                     client.Dispose()
                     return Error "info_hash mismatch"
                 else
-                    return Ok(startLoops client stream handshake.PeerId notify)
+                    return Ok(makeAgent client stream handshake.PeerId notify)
         with ex ->
             client.Dispose()
             return Error ex.Message
     }
 
 // Handshake already completed by EngineAgent before routing here.
-let createInbound (client: TcpClient) (peerId: byte[]) (notify: PeerEvent -> unit) : PeerAgent =
-    startLoops client (client.GetStream()) peerId notify
+let createInbound (client: TcpClient) (peerId: byte[]) (notify: PeerEvent -> unit) : PeerAgent * (unit -> unit) =
+    makeAgent client (client.GetStream()) peerId notify

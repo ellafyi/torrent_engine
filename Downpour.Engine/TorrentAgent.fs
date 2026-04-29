@@ -1,7 +1,6 @@
 module Downpour.Engine.TorrentAgent
 
 open System
-open System.Collections.Concurrent
 open System.Net.Sockets
 open Downpour.Protocol
 open Downpour.Tracker
@@ -48,8 +47,7 @@ type private TorrentContext =
       OurPeerId: byte[]
       Repository: TorrentRepository
       Notify: EngineEvent -> unit
-      TotalSize: int64
-      PendingPeers: ConcurrentQueue<PeerAgent> }
+      TotalSize: int64 }
 
 type TorrentAgent =
     { TorrentId: int
@@ -313,14 +311,9 @@ let private handleBlockReceived
                     dispatchRequests id state ctx.Meta
     }
 
-// Drains the outbound peer queue, updates per-second speed counters,
-// emits a Progress event, and resets any timed-out in-flight blocks.
+// Updates per-second speed counters, emits a Progress event,
+// and resets any timed-out in-flight blocks.
 let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
-    let mutable p = Unchecked.defaultof<PeerAgent>
-
-    while ctx.PendingPeers.TryDequeue(&p) do
-        registerPeer ctx state p
-
     state.LastDownloadSpeedBps <- state.DownloadedThisTick
     state.LastUploadSpeedBps <- state.UploadedThisTick
     state.DownloadedThisTick <- 0L
@@ -353,8 +346,7 @@ let create
           OurPeerId = ourPeerId
           Repository = repository
           Notify = notify
-          TotalSize = totalSizeOf meta
-          PendingPeers = ConcurrentQueue<PeerAgent>() }
+          TotalSize = totalSizeOf meta }
 
     let initialState =
         { Status = TorrentStatus.Paused
@@ -482,19 +474,22 @@ let create
                                     let! result = PeerAgent.create client infoHashBytes ctx.OurPeerId peerNotify
 
                                     match result with
-                                    | Ok peer ->
+                                    | Ok(peer, startRead) ->
                                         peerIdRef.Value <- peer.PeerId
-                                        ctx.PendingPeers.Enqueue peer
+                                        inbox.Post(PeerReady(fun () -> register peer; startRead()))
                                     | Error _ -> client.Dispose()
                                 with _ ->
                                     ()
                             }
                         )
 
+                    | PeerReady fn -> fn ()
+
                     | InboundPeer(client, peerId) ->
                         let peerNotify ev = inbox.Post(FromPeer(peerId, ev))
-                        let peer = createInbound client peerId peerNotify
+                        let peer, startRead = createInbound client peerId peerNotify
                         register peer
+                        startRead()
 
                     // peer events
 
@@ -509,9 +504,13 @@ let create
                             let hasNeeded =
                                 state.PieceStates |> Map.exists (fun i _ -> PieceStore.getBit bits i)
 
-                            if hasNeeded && not peer.State.AmInterested then
-                                peer.State <- { peer.State with AmInterested = true }
-                                peer.Agent.Post(SendMsg Interested)
+                            if hasNeeded then
+                                if not peer.State.AmInterested then
+                                    peer.State <- { peer.State with AmInterested = true }
+                                    peer.Agent.Post(SendMsg Interested)
+
+                                if not peer.State.PeerChoking then
+                                    dispatchRequests id state ctx.Meta
 
                     | FromPeer(peerId, PeerHasPiece idx) ->
                         let id = toHex peerId
@@ -521,9 +520,13 @@ let create
                         | Some peer ->
                             PieceStore.setBit peer.Bitfield idx
 
-                            if Map.containsKey idx state.PieceStates && not peer.State.AmInterested then
-                                peer.State <- { peer.State with AmInterested = true }
-                                peer.Agent.Post(SendMsg Interested)
+                            if Map.containsKey idx state.PieceStates then
+                                if not peer.State.AmInterested then
+                                    peer.State <- { peer.State with AmInterested = true }
+                                    peer.Agent.Post(SendMsg Interested)
+
+                                if not peer.State.PeerChoking then
+                                    dispatchRequests id state ctx.Meta
 
                     | FromPeer(peerId, PeerUnchoked) ->
                         let id = toHex peerId
