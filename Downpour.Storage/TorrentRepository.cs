@@ -31,4 +31,23 @@ public class TorrentRepository(DownpourDbContext context)
         var totalDownloaded = await context.Torrents.SumAsync(t => t.DownloadedBytes);
         return (totalUploaded, totalDownloaded);
     }
+
+    public async Task UpdateBitfieldAsync(int torrentId, byte[] bitfield)
+    {
+        await context.Torrents
+            .Where(t => t.Id == torrentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.PieceBitfield, bitfield));
+    }
+
+    public async Task UpdateStatusAsync(int torrentId, TorrentStatus status)
+    {
+        await context.Torrents
+            .Where(t => t.Id == torrentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.Status, status));
+    }
+
+    public async Task<Torrent?> GetByInfoHashAsync(string infoHashHex)
+    {
+        return await context.Torrents.FirstOrDefaultAsync(t => t.InfoHash == infoHashHex);
+    }
 }

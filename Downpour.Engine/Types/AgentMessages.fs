@@ -25,13 +25,14 @@ type TorrentCommand =
     | Pause
     | Resume
     | ConnectToPeer of Downpour.Tracker.PeerInfo
-    | InboundPeer of client: System.Net.Sockets.TcpClient
+    | InboundPeer of client: System.Net.Sockets.TcpClient * peerId: byte[]
     | FromPeer of peerId: byte[] * PeerEvent
     | TrackerTick // check if re-announce is due
     | ProgressTick // compute and emit speed and progress
     | TrackerResult of Result<Downpour.Tracker.AnnounceResponse, Downpour.Tracker.TrackerError>
     | SettingsUpdated of EngineSettings
     | GetProgress of AsyncReplyChannel<TorrentProgress>
+    | PieceVerified of pieceIndex: int * passed: bool
 
 // sent TO the EngineAgent
 type EngineCommand =

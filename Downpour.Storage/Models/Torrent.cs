@@ -12,4 +12,5 @@ public class Torrent
     public TorrentStatus Status { get; set; } = TorrentStatus.Paused;
     public DateTimeOffset AddedAt { get; set; } = DateTimeOffset.UtcNow;
     public byte[]? TorrentFileData { get; set; }
+    public byte[]? PieceBitfield { get; set; }
 }
