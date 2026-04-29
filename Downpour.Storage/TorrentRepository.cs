@@ -50,4 +50,11 @@ public class TorrentRepository(DownpourDbContext context)
     {
         return await context.Torrents.FirstOrDefaultAsync(t => t.InfoHash == infoHashHex);
     }
+
+    public async Task DeleteTorrentAsync(int torrentId)
+    {
+        await context.Torrents
+            .Where(t => t.Id == torrentId)
+            .ExecuteDeleteAsync();
+    }
 }

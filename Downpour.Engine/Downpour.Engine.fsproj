@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Types\EngineSettings.fs"/>
+        <Compile Include="Types\Observables.fs"/>
+        <Compile Include="Types\PieceState.fs"/>
+        <Compile Include="Types\AgentMessages.fs"/>
+        <Compile Include="PieceStore.fs"/>
+        <Compile Include="PeerAgent.fs"/>
+        <Compile Include="TorrentAgent.fs"/>
+        <Compile Include="EngineAgent.fs"/>
+        <Compile Include="Engine.fs"/>
+        <ProjectReference Include="..\Downpour.Bencode\Downpour.Bencode.fsproj"/>
+        <ProjectReference Include="..\Downpour.Protocol\Downpour.Protocol.fsproj"/>
+        <ProjectReference Include="..\Downpour.Storage\Downpour.Storage.csproj"/>
+        <ProjectReference Include="..\Downpour.Torrent\Downpour.Torrent.fsproj"/>
+        <ProjectReference Include="..\Downpour.Tracker\Downpour.Tracker.fsproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Reactive" Version="7.0.0-preview.1"/>
+    </ItemGroup>
+
+</Project>
