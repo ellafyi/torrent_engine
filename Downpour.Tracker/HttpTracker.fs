@@ -124,13 +124,35 @@ let internal parseResponse (bytes: byte[]) : Result<AnnounceResponse, TrackerErr
             | _ -> Error(ParseError "Response missing required field: interval")
     | Ok _ -> Error(ParseError "Tracker response is not a dictionary")
 
+#if DEBUG
+let private loggingOn = Environment.GetEnvironmentVariable("DOWNPOUR_LOG") <> null
+let private log (msg: string) = if loggingOn then eprintfn "%s" msg
+#endif
+
 let announce (client: HttpClient) (url: string) (req: AnnounceRequest) : Async<Result<AnnounceResponse, TrackerError>> =
     async {
         let fullUrl = buildUrl url req
 
+#if DEBUG
+        if loggingOn then
+            let infoHex = req.InfoHash |> Array.map (sprintf "%02x") |> String.concat ""
+            log $"[HTTP] Tracker: {url}"
+            log $"[HTTP] InfoHash: {infoHex}"
+            log $"[HTTP] URL: {fullUrl}"
+#endif
+
         try
-            let! bytes = client.GetByteArrayAsync(fullUrl) |> Async.AwaitTask
+            use msg = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, fullUrl)
+            msg.Headers.TryAddWithoutValidation("User-Agent", "qBittorrent/5.0.0") |> ignore
+            let! resp = client.SendAsync(msg) |> Async.AwaitTask
+            let! bytes = resp.Content.ReadAsByteArrayAsync() |> Async.AwaitTask
+#if DEBUG
+            log $"[HTTP] Status: {int resp.StatusCode}, body: {bytes.Length} bytes"
+#endif
             return parseResponse bytes
         with ex ->
+#if DEBUG
+            log $"[HTTP] Failed: {ex.Message}"
+#endif
             return Error(NetworkError ex.Message)
     }

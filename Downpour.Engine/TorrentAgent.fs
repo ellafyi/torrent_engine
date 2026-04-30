@@ -56,6 +56,16 @@ type TorrentAgent =
 
 // helpers
 
+#if DEBUG
+let private loggingOn = Environment.GetEnvironmentVariable("DOWNPOUR_LOG") <> null
+
+let private dbg (id: int) (msg: string) =
+    if loggingOn then
+        eprintfn "[%s] [T%d] %s" (DateTime.Now.ToString("HH:mm:ss.fff")) id msg
+#else
+let private dbg (_: int) (_: string) = ()
+#endif
+
 let private toHex (bytes: byte[]) =
     bytes |> Array.map (sprintf "%02x") |> String.concat ""
 
@@ -288,6 +298,7 @@ let private handleBlockReceived
                 ps.Blocks[blockIdx] <- Received
                 peer.Pending <- max 0 (peer.Pending - 1)
                 state.DownloadedThisTick <- state.DownloadedThisTick + int64 data.Length
+                dbg ctx.TorrentId (sprintf "Block piece=%d offset=%d len=%d" pieceIdx offset data.Length)
 
                 if ps.Blocks |> Array.forall (fun b -> b = Received) then
                     let pieceLen = ps.Data.Length
@@ -390,7 +401,10 @@ let create
                         state.Bitfield <- corrected
                         state.PieceStates <- initPieceStates ctx.Meta corrected
 
-                        if PieceStore.isComplete corrected ctx.Meta.Info.Pieces.Length then
+                        let complete = PieceStore.isComplete corrected ctx.Meta.Info.Pieces.Length
+                        dbg ctx.TorrentId (sprintf "Start: %d/%d pieces verified, complete=%b" (PieceStore.countSet corrected) ctx.Meta.Info.Pieces.Length complete)
+
+                        if complete then
                             state.Status <- TorrentStatus.Seeding
                             ctx.Notify(EngineEvent.StatusChanged(ctx.TorrentId, TorrentStatus.Seeding))
                             fire Completed
@@ -446,6 +460,7 @@ let create
                             fire AnnounceEvent.None
 
                     | TrackerResult(Ok response) ->
+                        dbg ctx.TorrentId (sprintf "Tracker OK: %d peers, interval=%ds" response.Peers.Length response.Interval)
                         state.TrackerId <- response.TrackerId
                         state.NextAnnounce <- DateTime.UtcNow.AddSeconds(float response.Interval)
                         state.AnnounceInterval <- response.Interval
@@ -454,12 +469,15 @@ let create
                         |> List.truncate 50
                         |> List.iter (fun p -> inbox.Post(ConnectToPeer p))
 
-                    | TrackerResult(Error _) -> state.NextAnnounce <- DateTime.UtcNow.AddSeconds 30.0
+                    | TrackerResult(Error e) ->
+                        dbg ctx.TorrentId (sprintf "Tracker error: %A — retry in 30s" e)
+                        state.NextAnnounce <- DateTime.UtcNow.AddSeconds 30.0
 
                     // peer connections
 
                     | ConnectToPeer peerInfo ->
                         let (InfoHash infoHashBytes) = ctx.Meta.InfoHash
+                        dbg ctx.TorrentId (sprintf "Connecting to %s:%d" (peerInfo.IP.ToString()) peerInfo.Port)
 
                         Async.Start(
                             async {
@@ -476,14 +494,19 @@ let create
                                     match result with
                                     | Ok(peer, startRead) ->
                                         peerIdRef.Value <- peer.PeerId
+                                        dbg ctx.TorrentId (sprintf "Handshake OK with %s" (toHex peer.PeerId |> fun s -> s.[..11]))
                                         inbox.Post(PeerReady(fun () -> register peer; startRead()))
-                                    | Error _ -> client.Dispose()
-                                with _ ->
-                                    ()
+                                    | Error msg ->
+                                        dbg ctx.TorrentId (sprintf "Handshake failed: %s" msg)
+                                        client.Dispose()
+                                with ex ->
+                                    dbg ctx.TorrentId (sprintf "Connect failed: %s" ex.Message)
                             }
                         )
 
-                    | PeerReady fn -> fn ()
+                    | PeerReady fn ->
+                        fn ()
+                        dbg ctx.TorrentId (sprintf "Peer registered, total peers: %d" (Map.count state.Peers))
 
                     | InboundPeer(client, peerId) ->
                         let peerNotify ev = inbox.Post(FromPeer(peerId, ev))
@@ -497,12 +520,13 @@ let create
                         let id = toHex peerId
 
                         match Map.tryFind id state.Peers with
-                        | Option.None -> ()
+                        | Option.None ->
+                            dbg ctx.TorrentId (sprintf "Bitfield from unregistered peer %s — dropped" (id.[..7]))
                         | Some peer ->
                             peer.Bitfield <- bits
-
-                            let hasNeeded =
-                                state.PieceStates |> Map.exists (fun i _ -> PieceStore.getBit bits i)
+                            let piecesAvailable = PieceStore.countSet bits
+                            let hasNeeded = state.PieceStates |> Map.exists (fun i _ -> PieceStore.getBit bits i)
+                            dbg ctx.TorrentId (sprintf "Peer %s bitfield: %d pieces, hasNeeded=%b, choking=%b" (id.[..7]) piecesAvailable hasNeeded peer.State.PeerChoking)
 
                             if hasNeeded then
                                 if not peer.State.AmInterested then
@@ -532,8 +556,10 @@ let create
                         let id = toHex peerId
 
                         match Map.tryFind id state.Peers with
-                        | Option.None -> ()
+                        | Option.None ->
+                            dbg ctx.TorrentId (sprintf "Unchoke from unregistered peer %s — dropped" (id.[..7]))
                         | Some peer ->
+                            dbg ctx.TorrentId (sprintf "Peer %s unchoked us" (id.[..7]))
                             peer.State <- { peer.State with PeerChoking = false }
                             dispatchRequests id state ctx.Meta
 
@@ -590,6 +616,7 @@ let create
                     // verification and tick
 
                     | PieceVerified(pieceIdx, true) ->
+                        dbg ctx.TorrentId (sprintf "Piece %d verified OK (%d remaining)" pieceIdx (Map.count state.PieceStates - 1))
                         state.PieceStates <- Map.remove pieceIdx state.PieceStates
                         PieceStore.setBit state.Bitfield pieceIdx
 
@@ -610,6 +637,7 @@ let create
                                 dispatchRequests id state ctx.Meta
 
                     | PieceVerified(pieceIdx, false) ->
+                        dbg ctx.TorrentId (sprintf "Piece %d hash FAILED — resetting blocks" pieceIdx)
                         match Map.tryFind pieceIdx state.PieceStates with
                         | Option.None -> ()
                         | Some ps -> Array.fill ps.Blocks 0 ps.Blocks.Length Missing

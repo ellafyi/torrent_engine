@@ -104,3 +104,34 @@ let decode (data: byte array) : Result<BencodeValue, string> =
             else
                 Ok result
         | Error err -> Error err
+
+// Returns raw bytes of the value for key in the top-level dictionary of data.
+// Preserves the original encoding so the result can be hashed correctly.
+let findDictValueBytes (key: string) (data: byte[]) : byte[] option =
+    let keyBytes = Text.Encoding.UTF8.GetBytes(key)
+    let mem = ReadOnlyMemory<byte>(data)
+
+    match mem with
+    | MemRem('d'B, rest) ->
+        let rec scan (m: ReadOnlyMemory<byte>) =
+            match m with
+            | MemRem('e'B, _) -> None
+            | _ ->
+                match parse m with
+                | Error _ -> None
+                | Ok(BencodeValue.String k, afterKey) ->
+                    let valueStart = data.Length - afterKey.Length
+
+                    match parse afterKey with
+                    | Error _ -> None
+                    | Ok(_, afterVal) ->
+                        let valueEnd = data.Length - afterVal.Length
+
+                        if k = keyBytes then
+                            Some data.[valueStart .. valueEnd - 1]
+                        else
+                            scan afterVal
+                | Ok _ -> None
+
+        scan rest
+    | _ -> None
