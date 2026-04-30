@@ -39,30 +39,41 @@ let private dispatch (msg: PeerMessage) (notify: PeerEvent -> unit) =
 
 let private readLoop (stream: NetworkStream) (notify: PeerEvent -> unit) : Async<unit> =
     async {
-        let readBuf = Array.zeroCreate 65536
-        let mutable pending = ReadOnlyMemory<byte>.Empty
+        let mutable buf = Array.zeroCreate 65536
+        let mutable dataEnd = 0
 
         let rec loop () =
             async {
+                let mutable mem = ReadOnlyMemory<byte>(buf, 0, dataEnd)
                 let mutable parsing = true
 
                 while parsing do
-                    match Deserializer.parse pending with
+                    match Deserializer.parse mem with
                     | Ok(msg, remaining) ->
-                        pending <- remaining
+                        mem <- remaining
                         dispatch msg notify
                     | Error _ -> parsing <- false
 
+                // Compact unconsumed bytes to the front of the buffer (avoids per-read allocation)
+                let leftover = mem.Length
+
+                if leftover > 0 && leftover < dataEnd then
+                    Array.blit buf (dataEnd - leftover) buf 0 leftover
+
+                dataEnd <- leftover
+
+                if buf.Length - dataEnd < 4096 then
+                    let newBuf = Array.zeroCreate (buf.Length * 2)
+                    Array.blit buf 0 newBuf 0 dataEnd
+                    buf <- newBuf
+
                 try
-                    let! n = stream.ReadAsync(readBuf, 0, readBuf.Length) |> Async.AwaitTask
+                    let! n = stream.ReadAsync(buf, dataEnd, buf.Length - dataEnd) |> Async.AwaitTask
 
                     if n = 0 then
                         notify (Disconnected "connection closed")
                     else
-                        let combined = Array.zeroCreate (pending.Length + n)
-                        pending.CopyTo(Memory combined)
-                        Array.blit readBuf 0 combined pending.Length n
-                        pending <- ReadOnlyMemory combined
+                        dataEnd <- dataEnd + n
                         return! loop ()
                 with
                 | :? System.IO.IOException -> notify (Disconnected "connection closed")

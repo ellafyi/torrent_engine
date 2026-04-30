@@ -37,7 +37,8 @@ type private AgentState =
       mutable LastDownloadSpeedBps: int64
       mutable LastUploadSpeedBps: int64
       mutable Settings: EngineSettings
-      mutable TickCts: Threading.CancellationTokenSource option }
+      mutable TickCts: Threading.CancellationTokenSource option
+      mutable TickCount: int }
 
 // Static data for a torrent agent, does not change after creation.
 type private TorrentContext =
@@ -152,34 +153,21 @@ let private startTicks (inbox: MailboxProcessor<TorrentCommand>) (cts: Threading
     }
     |> fun a -> Async.Start(a, cts.Token)
 
-let private findNextBlock (peer: ActivePeer) (state: AgentState) (meta: TorrentMetaInfo) =
+let private findNextBlock (peer: ActivePeer) (state: AgentState) =
     state.PieceStates
     |> Map.toSeq
-    |> Seq.map (fun (idx, _) ->
-        let count =
-            state.Peers
-            |> Map.toSeq
-            |> Seq.map snd
-            |> Seq.filter (fun p -> PieceStore.getBit p.Bitfield idx)
-            |> Seq.length
-
-        idx, count)
-    |> Seq.sortBy snd
-    |> Seq.tryPick (fun (pieceIdx, _) ->
+    |> Seq.tryPick (fun (pieceIdx, ps) ->
         if not (PieceStore.getBit peer.Bitfield pieceIdx) then
             Option.None
         else
-            let ps = state.PieceStates[pieceIdx]
-
             ps.Blocks
             |> Array.tryFindIndex (fun b -> b = Missing)
             |> Option.map (fun blockIdx ->
                 let blockOffset = blockIdx * blockSize
-                let pieceLen = PieceStore.actualPieceLength meta pieceIdx
-                let blockLen = min blockSize (pieceLen - blockOffset)
+                let blockLen = min blockSize (ps.Data.Length - blockOffset)
                 pieceIdx, blockIdx, blockOffset, blockLen))
 
-let private dispatchRequests (peerId: string) (state: AgentState) (meta: TorrentMetaInfo) =
+let private dispatchRequests (peerId: string) (state: AgentState) =
     match Map.tryFind peerId state.Peers with
     | Option.None -> ()
     | Some peer when peer.State.PeerChoking -> ()
@@ -190,7 +178,7 @@ let private dispatchRequests (peerId: string) (state: AgentState) (meta: Torrent
             if peer.Pending >= pipelineDepth then
                 stop <- true
             else
-                match findNextBlock peer state meta with
+                match findNextBlock peer state with
                 | Option.None -> stop <- true
                 | Some(pieceIdx, blockIdx, blockOffset, blockLen) ->
                     let ps = state.PieceStates[pieceIdx]
@@ -319,12 +307,13 @@ let private handleBlockReceived
                         }
                     )
                 else
-                    dispatchRequests id state ctx.Meta
+                    dispatchRequests id state
     }
 
 // Updates per-second speed counters, emits a Progress event,
 // and resets any timed-out in-flight blocks.
 let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
+    state.TickCount <- state.TickCount + 1
     state.LastDownloadSpeedBps <- state.DownloadedThisTick
     state.LastUploadSpeedBps <- state.UploadedThisTick
     state.DownloadedThisTick <- 0L
@@ -332,11 +321,13 @@ let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
 
     ctx.Notify(EngineEvent.Progress(makeProgress ctx state))
 
-    for _, ps in Map.toSeq state.PieceStates do
-        for i in 0 .. ps.Blocks.Length - 1 do
-            match ps.Blocks[i] with
-            | InFlight(_, since) when DateTime.UtcNow - since > blockTimeoutSecs -> ps.Blocks[i] <- Missing
-            | _ -> ()
+    // Block timeout is 30s; checking every 10s is sufficient and avoids scanning all blocks per-second
+    if state.TickCount % 10 = 0 then
+        for _, ps in Map.toSeq state.PieceStates do
+            for i in 0 .. ps.Blocks.Length - 1 do
+                match ps.Blocks[i] with
+                | InFlight(_, since) when DateTime.UtcNow - since > blockTimeoutSecs -> ps.Blocks[i] <- Missing
+                | _ -> ()
 
 
 let create
@@ -375,7 +366,8 @@ let create
           LastDownloadSpeedBps = 0L
           LastUploadSpeedBps = 0L
           Settings = settings
-          TickCts = Option.None }
+          TickCts = Option.None
+          TickCount = 0 }
 
     let agent =
         MailboxProcessor<TorrentCommand>.Start(fun inbox ->
@@ -396,6 +388,7 @@ let create
                         let cts = new Threading.CancellationTokenSource()
                         state.TickCts <- Some cts
                         ctx.Notify(EngineEvent.StatusChanged(ctx.TorrentId, TorrentStatus.Checking))
+                        PieceStore.prepareFiles ctx.Meta.Info.FileLayout ctx.SavePath
                         let! corrected = PieceStore.verifyExistingPieces ctx.Meta ctx.SavePath state.Bitfield
                         do! ctx.Repository.UpdateBitfieldAsync(ctx.TorrentId, corrected) |> Async.AwaitTask
                         state.Bitfield <- corrected
@@ -418,6 +411,7 @@ let create
                     | Resume ->
                         let cts = new Threading.CancellationTokenSource()
                         state.TickCts <- Some cts
+                        PieceStore.prepareFiles ctx.Meta.Info.FileLayout ctx.SavePath
                         state.PieceStates <- initPieceStates ctx.Meta state.Bitfield
 
                         if PieceStore.isComplete state.Bitfield ctx.Meta.Info.Pieces.Length then
@@ -534,7 +528,7 @@ let create
                                     peer.Agent.Post(SendMsg Interested)
 
                                 if not peer.State.PeerChoking then
-                                    dispatchRequests id state ctx.Meta
+                                    dispatchRequests id state
 
                     | FromPeer(peerId, PeerHasPiece idx) ->
                         let id = toHex peerId
@@ -550,7 +544,7 @@ let create
                                     peer.Agent.Post(SendMsg Interested)
 
                                 if not peer.State.PeerChoking then
-                                    dispatchRequests id state ctx.Meta
+                                    dispatchRequests id state
 
                     | FromPeer(peerId, PeerUnchoked) ->
                         let id = toHex peerId
@@ -561,7 +555,7 @@ let create
                         | Some peer ->
                             dbg ctx.TorrentId (sprintf "Peer %s unchoked us" (id.[..7]))
                             peer.State <- { peer.State with PeerChoking = false }
-                            dispatchRequests id state ctx.Meta
+                            dispatchRequests id state
 
                     | FromPeer(peerId, PeerChoked) ->
                         let id = toHex peerId
@@ -634,7 +628,7 @@ let create
                             do! handleCompletion ctx state inbox
                         else
                             for id in state.Peers |> Map.toSeq |> Seq.map fst do
-                                dispatchRequests id state ctx.Meta
+                                dispatchRequests id state
 
                     | PieceVerified(pieceIdx, false) ->
                         dbg ctx.TorrentId (sprintf "Piece %d hash FAILED — resetting blocks" pieceIdx)

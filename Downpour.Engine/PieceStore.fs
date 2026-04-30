@@ -74,6 +74,17 @@ let actualPieceLength (meta: TorrentMetaInfo) (pieceIndex: int) : int =
 
     int (min meta.Info.PieceLength (totalSize - int64 pieceIndex * meta.Info.PieceLength))
 
+let prepareFiles (layout: FileLayout) (saveBase: string) =
+    match layout with
+    | SingleFile _ ->
+        let dir = Path.GetDirectoryName(saveBase)
+        if not (String.IsNullOrEmpty dir) then Directory.CreateDirectory(dir) |> ignore
+    | MultiFile files ->
+        for file in files do
+            let path = Path.Combine([| saveBase; yield! file.Path |])
+            let dir = Path.GetDirectoryName(path)
+            if not (String.IsNullOrEmpty dir) then Directory.CreateDirectory(dir) |> ignore
+
 let writeBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceIndex: int) (blockOffset: int) (data: byte[]) : Async<unit> =
     async {
         let virtualStart = int64 pieceIndex * pieceSize + int64 blockOffset
@@ -81,7 +92,6 @@ let writeBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (piece
         let mutable pos = 0
 
         for seg in segments do
-            Directory.CreateDirectory(Path.GetDirectoryName(seg.FilePath)) |> ignore
             use fs = new FileStream(seg.FilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)
             fs.Seek(seg.FileOffset, SeekOrigin.Begin) |> ignore
             do! fs.WriteAsync(data, pos, seg.Length) |> Async.AwaitTask
@@ -107,8 +117,7 @@ let readBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceI
 let verifyPiece (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceIndex: int) (pieceLength: int) (Sha1Hash expected) : Async<bool> =
     async {
         let! data = readBlock layout saveBase pieceSize pieceIndex 0 pieceLength
-        use sha1 = SHA1.Create()
-        return sha1.ComputeHash(data) = expected
+        return SHA1.HashData(data) = expected
     }
 
 let verifyExistingPieces (meta: TorrentMetaInfo) (saveBase: string) (storedBitfield: byte[]) : Async<byte[]> =
