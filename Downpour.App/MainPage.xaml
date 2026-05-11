@@ -59,51 +59,50 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:TorrentItemViewModel">
                     <Border Margin="8,3"
-                            Padding="14,10"
-                            BackgroundColor="{AppThemeBinding Light=#72FFFFFF, Dark=#12FFFFFF}"
+                            Padding="12,8"
+                            BackgroundColor="{Binding CardBackgroundColor}"
                             Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
                             StrokeThickness="1">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="8" />
                         </Border.StrokeShape>
-                        <VerticalStackLayout Spacing="5">
-
-                            <!-- Name + status -->
-                            <Grid ColumnDefinitions="*, Auto">
-                                <Label Grid.Column="0"
-                                       Text="{Binding Name}"
-                                       FontAttributes="Bold"
-                                       FontSize="14"
-                                       LineBreakMode="TailTruncation" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding StatusLabel}"
-                                       FontSize="12"
-                                       VerticalOptions="Center"
-                                       Margin="8,0,0,0" />
-                            </Grid>
-
-                            <!-- Progress bar -->
-                            <ProgressBar Progress="{Binding ProgressFraction}"
-                                         HeightRequest="6" />
-
-                            <!-- Size / speeds / peers -->
-                            <Grid ColumnDefinitions="2*, *, *, *">
-                                <Label Grid.Column="0"
-                                       Text="{Binding SizeText}"
-                                       FontSize="11" />
-                                <Label Grid.Column="1"
-                                       Text="{Binding DownloadSpeed}"
-                                       FontSize="11" />
-                                <Label Grid.Column="2"
-                                       Text="{Binding UploadSpeed}"
-                                       FontSize="11" />
-                                <Label Grid.Column="3"
-                                       Text="{Binding PeerCountText}"
-                                       FontSize="11"
-                                       HorizontalOptions="End" />
-                            </Grid>
-
-                        </VerticalStackLayout>
+                        <Grid ColumnDefinitions="Auto, Auto, *, 2*, Auto, Auto"
+                              ColumnSpacing="10"
+                              VerticalOptions="Center">
+                            <Label Grid.Column="0"
+                                   Text="{Binding StatusLabel}"
+                                   TextColor="{Binding StatusTextColor}"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   MinimumWidthRequest="88"
+                                   VerticalOptions="Center" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                <Label Text="{Binding DownloadSpeed}" FontSize="11" VerticalOptions="Center" />
+                                <Label Text="{Binding UploadSpeed}" FontSize="11" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <Label Grid.Column="2"
+                                   Text="{Binding Name}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="TailTruncation"
+                                   VerticalOptions="Center" />
+                            <ProgressBar Grid.Column="3"
+                                         Progress="{Binding ProgressFraction}"
+                                         HeightRequest="6"
+                                         VerticalOptions="Center" />
+                            <Label Grid.Column="4"
+                                   Text="{Binding ProgressPercent}"
+                                   FontSize="11"
+                                   MinimumWidthRequest="34"
+                                   HorizontalTextAlignment="End"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="5"
+                                   Text="{Binding PeerCountText}"
+                                   FontSize="11"
+                                   MinimumWidthRequest="28"
+                                   HorizontalTextAlignment="End"
+                                   VerticalOptions="Center" />
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
