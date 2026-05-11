@@ -21,6 +21,14 @@ public partial class MainViewModel : ObservableObject
 
     public bool HasSelection => SelectedTorrent != null;
 
+    [ObservableProperty]
+    public partial string GlobalDownloadSpeed { get; set; } = "↓ 0 B/s";
+
+    [ObservableProperty]
+    public partial string GlobalUploadSpeed { get; set; } = "↑ 0 B/s";
+
+    private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
+
     public MainViewModel(IEngine engine)
     {
         _engine = engine;
@@ -57,6 +65,9 @@ public partial class MainViewModel : ObservableObject
                         Torrents.Add(item);
                     }
                     item.Update(p);
+                    
+                    _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
+                    UpdateGlobalSpeedStrings();
                     break;
 
                 case EngineEvent.StatusChanged sc:
@@ -74,6 +85,8 @@ public partial class MainViewModel : ObservableObject
                         if (SelectedTorrent == toRemove) SelectedTorrent = null;
                         Torrents.Remove(toRemove);
                     }
+                    _currentSpeeds.Remove(removed.torrentId);
+                    UpdateGlobalSpeedStrings();
                     break;
 
                 case EngineEvent.Error err:
@@ -83,6 +96,21 @@ public partial class MainViewModel : ObservableObject
             }
         });
     }
+
+    private void UpdateGlobalSpeedStrings()
+    {
+        long totalDown = _currentSpeeds.Values.Sum(s => s.down);
+        long totalUp = _currentSpeeds.Values.Sum(s => s.up);
+        GlobalDownloadSpeed = $"↓ {FormatSpeed(totalDown)}";
+        GlobalUploadSpeed = $"↑ {FormatSpeed(totalUp)}";
+    }
+
+    private static string FormatSpeed(long bps) => bps switch
+    {
+        >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
+        >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
+        _ => $"{bps} B/s"
+    };
 
     [RelayCommand]
     private async Task AddTorrent()

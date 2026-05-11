@@ -2,50 +2,113 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Downpour.App.ViewModels"
+             xmlns:mi="http://www.aathifmahir.com/dotnet/2022/maui/icons"
              x:Class="Downpour.App.MainPage"
              x:DataType="vm:MainViewModel"
+             Shell.NavBarIsVisible="False"
              Title="Downpour">
 
-    <Grid RowDefinitions="Auto, *">
+    <Grid RowDefinitions="32, 48, *">
 
-        <!-- Toolbar -->
-        <HorizontalStackLayout Grid.Row="0"
-                               Padding="8,6"
-                               Spacing="6"
-                               BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A2A}">
+        <!-- Custom Titlebar (Window Controls Area) -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="Auto, *"
+              Padding="12,0"
+              BackgroundColor="Transparent">
 
-            <Button Text="Add"
-                    Command="{Binding AddTorrentCommand}"
-                    WidthRequest="80" />
+            <!-- Title / Icon -->
+            <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
+                <mi:MauiIcon Icon="{mi:Fluent WeatherRain24}" IconSize="16" IconColor="{AppThemeBinding Light=#512BD4, Dark=#A482FF}" />
+                <Label Text="Downpour"
+                       FontAttributes="Bold"
+                       FontSize="12"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
+        </Grid>
 
-            <Button Text="Pause"
-                    Command="{Binding PauseTorrentCommand}"
-                    IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}"
-                    WidthRequest="90" />
+        <!-- Ribbon Toolbar -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="Auto, *, Auto"
+              Padding="12,0"
+              BackgroundColor="{AppThemeBinding Light=#08000000, Dark=#1AFFFFFF}">
 
-            <Button Text="Resume"
-                    Command="{Binding ResumeTorrentCommand}"
-                    IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}"
-                    WidthRequest="90" />
+            <!-- Action Buttons -->
+            <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                
+                <ImageButton Command="{Binding AddTorrentCommand}"
+                             Source="{mi:Fluent Add24}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Add Torrent" />
 
-            <Button Text="Remove"
-                    Command="{Binding RemoveTorrentCommand}"
-                    IsEnabled="{Binding HasSelection}"
-                    WidthRequest="90" />
+                <ImageButton Command="{Binding PauseTorrentCommand}"
+                             IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}"
+                             Source="{mi:Fluent Pause24}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Pause" />
 
-            <Button Text="Delete Files"
-                    Command="{Binding RemoveAndDeleteCommand}"
-                    IsEnabled="{Binding HasSelection}"
-                    WidthRequest="110" />
+                <ImageButton Command="{Binding ResumeTorrentCommand}"
+                             IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}"
+                             Source="{mi:Fluent Play24}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Resume" />
 
-            <Button Text="Clear DB"
-                    Command="{Binding ClearDatabaseCommand}"
-                    WidthRequest="90" />
+                <ImageButton Command="{Binding RemoveTorrentCommand}"
+                             IsEnabled="{Binding HasSelection}"
+                             Source="{mi:Fluent Delete24}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Remove" />
 
-        </HorizontalStackLayout>
+                <ImageButton Command="{Binding RemoveAndDeleteCommand}"
+                             IsEnabled="{Binding HasSelection}"
+                             Source="{mi:Fluent DeleteDismiss24}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Delete Files" />
+
+                <BoxView WidthRequest="1" HeightRequest="16" Color="Gray" Margin="6,0" Opacity="0.5"/>
+
+                <ImageButton Command="{Binding ClearDatabaseCommand}"
+                             Source="{mi:Fluent DatabaseArrowDown20}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent"
+                             ToolTipProperties.Text="Clear DB" />
+
+            </HorizontalStackLayout>
+
+            <!-- Center Global Speeds -->
+            <HorizontalStackLayout Grid.Column="1"
+                                   Spacing="16"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center">
+                <Label Text="{Binding GlobalDownloadSpeed}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#2E8B57, Dark=#81C784}" />
+                <Label Text="{Binding GlobalUploadSpeed}"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#1565C0, Dark=#64B5F6}" />
+            </HorizontalStackLayout>
+        </Grid>
 
         <!-- Torrent list -->
-        <CollectionView Grid.Row="1"
+        <CollectionView Grid.Row="2"
                         ItemsSource="{Binding Torrents}"
                         SelectionMode="Single"
                         SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}">
