@@ -37,16 +37,7 @@ public static class MauiProgram
             {
                 wndLifeCycleBuilder.OnWindowCreated(window =>
                 {
-                    window.ExtendsContentIntoTitleBar = true;
                     window.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
-                    
-                    var handle = WindowNative.GetWindowHandle(window);
-                    var id = Win32Interop.GetWindowIdFromWindow(handle);
-                    var appWindow = AppWindow.GetFromWindowId(id);
-                    
-                    appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
-                    appWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
-                    appWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
                 });
             });
         });

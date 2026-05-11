@@ -1,10 +1,21 @@
+using Downpour.App.ViewModels;
+
 namespace Downpour.App;
 
 public partial class App : Application
 {
-    public App()
+    private readonly MainViewModel _vm;
+
+    public App(MainViewModel vm)
     {
+        _vm = vm;
         InitializeComponent();
-        MainPage = new AppShell();
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var window = new Window(new AppShell());
+        window.TitleBar = new TitleBarView { BindingContext = _vm };
+        return window;
     }
 }

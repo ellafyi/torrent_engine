@@ -112,6 +112,18 @@ public partial class MainViewModel : ObservableObject
         _ => $"{bps} B/s"
     };
 
+    partial void OnSelectedTorrentChanged(TorrentItemViewModel? oldValue, TorrentItemViewModel? newValue)
+    {
+        if (oldValue != null) oldValue.PropertyChanged -= OnSelectedItemPropertyChanged;
+        if (newValue != null) newValue.PropertyChanged += OnSelectedItemPropertyChanged;
+    }
+
+    private void OnSelectedItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TorrentItemViewModel.CanPause) or nameof(TorrentItemViewModel.CanResume))
+            OnPropertyChanged(nameof(SelectedTorrent));
+    }
+
     [RelayCommand]
     private async Task AddTorrent()
     {

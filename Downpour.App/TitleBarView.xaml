@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<TitleBar xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+          xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+          xmlns:vm="clr-namespace:Downpour.App.ViewModels"
+          x:Class="Downpour.App.TitleBarView"
+          x:DataType="vm:MainViewModel"
+          Title="Downpour"
+          BackgroundColor="Transparent"
+          ForegroundColor="{AppThemeBinding Light=#1A1A1A, Dark=#F0F0F0}"
+          HeightRequest="48">
+
+    <TitleBar.TrailingContent>
+        <HorizontalStackLayout Spacing="16" VerticalOptions="Center" Margin="0,0,16,0">
+            <Label Text="{Binding GlobalDownloadSpeed}"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#2E8B57, Dark=#81C784}"
+                   VerticalOptions="Center" />
+            <Label Text="{Binding GlobalUploadSpeed}"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#1565C0, Dark=#64B5F6}"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+    </TitleBar.TrailingContent>
+
+</TitleBar>
