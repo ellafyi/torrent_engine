@@ -11,50 +11,61 @@
     <Grid RowDefinitions="Auto, *">
 
         <!-- Toolbar -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="4" VerticalOptions="Center" Margin="8,8,8,8">
-            <Button x:Name="BtnAdd"
-                    Text="Add"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding AddTorrentCommand}" />
+        <Grid Grid.Row="0" ColumnDefinitions="Auto, *" VerticalOptions="Center" Margin="8,8,8,8">
+            <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                <Button x:Name="BtnAdd"
+                        Text="Add"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding AddTorrentCommand}" />
 
-            <Button x:Name="BtnPause"
-                    Text="Pause"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding PauseTorrentCommand}"
-                    IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}" />
+                <Button x:Name="BtnPause"
+                        Text="Pause"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding PauseTorrentCommand}"
+                        IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}" />
 
-            <Button x:Name="BtnResume"
-                    Text="Resume"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding ResumeTorrentCommand}"
-                    IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}" />
+                <Button x:Name="BtnResume"
+                        Text="Resume"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding ResumeTorrentCommand}"
+                        IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}" />
 
-            <Button x:Name="BtnRemove"
-                    Text="Remove"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding RemoveTorrentCommand}"
-                    IsEnabled="{Binding HasSelection}" />
+                <Button x:Name="BtnRemove"
+                        Text="Remove"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding RemoveTorrentCommand}"
+                        IsEnabled="{Binding HasSelection}" />
 
-            <Button x:Name="BtnDelete"
-                    Text="Delete"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding RemoveAndDeleteCommand}"
-                    IsEnabled="{Binding HasSelection}" />
+                <Button x:Name="BtnDelete"
+                        Text="Delete"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding RemoveAndDeleteCommand}"
+                        IsEnabled="{Binding HasSelection}" />
 
-            <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
 
-            <Button x:Name="BtnClearDb"
-                    Text="Clear DB"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding ClearDatabaseCommand}" />
+                <Button x:Name="BtnClearDb"
+                        Text="Clear DB"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding ClearDatabaseCommand}" />
 
-            <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
 
-            <Button x:Name="BtnSettings"
-                    Text="Settings"
-                    Style="{StaticResource FlatButton}"
-                    Command="{Binding OpenSettingsCommand}" />
-        </HorizontalStackLayout>
+                <Button x:Name="BtnSettings"
+                        Text="Settings"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding OpenSettingsCommand}" />
+            </HorizontalStackLayout>
+
+            <Label Grid.Column="1"
+                   Text="{Binding ThrottleLimitText}"
+                   IsVisible="{Binding HasThrottleLimits}"
+                   FontSize="12"
+                   Opacity="0.6"
+                   HorizontalOptions="End"
+                   VerticalOptions="Center"
+                   Margin="0,0,4,0" />
+        </Grid>
 
         <!-- Torrent list -->
         <CollectionView Grid.Row="1"

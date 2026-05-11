@@ -31,6 +31,7 @@ type private AgentState =
       mutable AnnounceInterval: int
       mutable AnnounceTiers: string list list
       mutable DownloadedThisTick: int64
+      mutable RequestedThisTick: int64
       mutable UploadedThisTick: int64
       mutable TotalDownloaded: int64
       mutable TotalUploaded: int64
@@ -182,10 +183,16 @@ let private dispatchRequests (peerId: string) (state: AgentState) =
                 match findNextBlock peer state with
                 | Option.None -> stop <- true
                 | Some(pieceIdx, blockIdx, blockOffset, blockLen) ->
-                    let ps = state.PieceStates[pieceIdx]
-                    ps.Blocks[blockIdx] <- InFlight(peer.Agent.PeerId, DateTime.UtcNow)
-                    peer.Agent.Post(SendMsg(Request(pieceIdx, blockOffset, blockLen)))
-                    peer.Pending <- peer.Pending + 1
+                    let dlLimit = state.Settings.MaxDownloadSpeedKbps
+                    let dlBudget = int64 dlLimit * 1024L
+                    if dlLimit > 0 && state.RequestedThisTick + int64 blockLen > dlBudget then
+                        stop <- true
+                    else
+                        let ps = state.PieceStates[pieceIdx]
+                        ps.Blocks[blockIdx] <- InFlight(peer.Agent.PeerId, DateTime.UtcNow)
+                        peer.Agent.Post(SendMsg(Request(pieceIdx, blockOffset, blockLen)))
+                        peer.Pending <- peer.Pending + 1
+                        state.RequestedThisTick <- state.RequestedThisTick + int64 blockLen
 
 // mailbox helpers
 
@@ -321,6 +328,7 @@ let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
     state.LastDownloadSpeedBps <- state.DownloadedThisTick
     state.LastUploadSpeedBps <- state.UploadedThisTick
     state.DownloadedThisTick <- 0L
+    state.RequestedThisTick <- 0L
     state.UploadedThisTick <- 0L
 
     ctx.Notify(EngineEvent.Progress(makeProgress ctx state))
@@ -364,6 +372,7 @@ let create
           AnnounceInterval = 1800
           AnnounceTiers = defaultArg meta.AnnounceList [ [ meta.Announce ] ]
           DownloadedThisTick = 0L
+          RequestedThisTick = 0L
           UploadedThisTick = 0L
           TotalDownloaded =
             [ 0 .. meta.Info.Pieces.Length - 1 ]
@@ -605,22 +614,27 @@ let create
                             match Map.tryFind id state.Peers with
                             | Option.None -> ()
                             | Some peer ->
-                                Async.Start(
-                                    async {
-                                        let! data =
-                                            PieceStore.readBlock
-                                                ctx.Meta.Info.FileLayout
-                                                ctx.SavePath
-                                                ctx.Meta.Info.PieceLength
-                                                pieceIdx
-                                                offset
-                                                len
+                                let ulLimit = state.Settings.MaxUploadSpeedMbps
+                                let ulBudget = int64 ulLimit * 1024L * 1024L
+                                let underLimit = ulLimit = 0 || state.UploadedThisTick + int64 len <= ulBudget
 
-                                        peer.Agent.Post(SendMsg(Piece(pieceIdx, offset, data)))
-                                    }
-                                )
+                                if underLimit then
+                                    Async.Start(
+                                        async {
+                                            let! data =
+                                                PieceStore.readBlock
+                                                    ctx.Meta.Info.FileLayout
+                                                    ctx.SavePath
+                                                    ctx.Meta.Info.PieceLength
+                                                    pieceIdx
+                                                    offset
+                                                    len
 
-                                state.UploadedThisTick <- state.UploadedThisTick + int64 len
+                                            peer.Agent.Post(SendMsg(Piece(pieceIdx, offset, data)))
+                                        }
+                                    )
+
+                                    state.UploadedThisTick <- state.UploadedThisTick + int64 len
 
                     | FromPeer(peerId, Disconnected _) ->
                         let id = toHex peerId

@@ -29,12 +29,28 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial string GlobalUploadSpeed { get; set; } = "↑ 0 B/s";
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThrottleLimits))]
+    public partial string ThrottleLimitText { get; set; } = "";
+
+    public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
+
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
 
     public MainViewModel(IEngine engine, SettingsService settingsService)
     {
         _engine = engine;
         _settingsService = settingsService;
+        RefreshThrottleDisplay();
+    }
+
+    private void RefreshThrottleDisplay()
+    {
+        var s = _settingsService.Load();
+        var parts = new List<string>();
+        if (s.MaxDownloadSpeedKbps > 0) parts.Add($"↓ {s.MaxDownloadSpeedKbps} KB/s");
+        if (s.MaxUploadSpeedMbps   > 0) parts.Add($"↑ {s.MaxUploadSpeedMbps} MB/s");
+        ThrottleLimitText = string.Join("  ", parts);
     }
 
     public async Task InitializeAsync()
@@ -199,6 +215,7 @@ public partial class MainViewModel : ObservableObject
         if (result == null) return;
         _settingsService.Save(result);
         await _engine.UpdateSettingsAsync(result);
+        RefreshThrottleDisplay();
     }
 
     [RelayCommand]
