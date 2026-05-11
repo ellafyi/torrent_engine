@@ -30,6 +30,17 @@ public partial class MainViewModel : ObservableObject
     {
         _subscription = _engine.Events.Subscribe(new EventObserver(OnEngineEvent));
         await _engine.StartAsync();
+
+        var initial = _engine.GetTorrents();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var p in initial)
+            {
+                var vm = new TorrentItemViewModel();
+                vm.Update(p);
+                Torrents.Add(vm);
+            }
+        });
     }
 
     private void OnEngineEvent(EngineEvent ev)
@@ -50,12 +61,10 @@ public partial class MainViewModel : ObservableObject
 
                 case EngineEvent.StatusChanged sc:
                     var scItem = Torrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
-                    if (scItem == null)
+                    if (scItem != null)
                     {
-                        scItem = new TorrentItemViewModel { TorrentId = sc.torrentId };
-                        Torrents.Add(scItem);
+                        scItem.UpdateStatus(sc.Item2);
                     }
-                    scItem.UpdateStatus(sc.Item2);
                     break;
 
                 case EngineEvent.TorrentRemoved removed:
@@ -134,6 +143,20 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedTorrent == null) return;
         await _engine.RemoveTorrentAsync(SelectedTorrent.TorrentId, true);
+    }
+
+    [RelayCommand]
+    private async Task ClearDatabase()
+    {
+        bool confirm = await Shell.Current.DisplayAlertAsync(
+            "Clear Database",
+            "Are you sure you want to delete all torrents from the database? This action cannot be undone.",
+            "Yes", "No");
+
+        if (confirm)
+        {
+            await _engine.ClearDatabaseAsync();
+        }
     }
 
     public async Task ShutdownAsync()

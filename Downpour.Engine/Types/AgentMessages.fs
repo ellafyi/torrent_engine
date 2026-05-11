@@ -45,4 +45,5 @@ type EngineCommand =
     | TorrentEvent of torrentId: int * EngineEvent
     | UpdateSettings of EngineSettings * reply: AsyncReplyChannel<unit>
     | GetAllProgress of AsyncReplyChannel<TorrentProgress list>
+    | ClearDatabase of reply: AsyncReplyChannel<unit>
     | Stop of AsyncReplyChannel<unit>

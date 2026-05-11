@@ -97,12 +97,13 @@ let private initializeTorrents
     (ourPeerId: byte[])
     (settings: EngineSettings)
     (inbox: MailboxProcessor<EngineCommand>)
-    : Async<Map<int, TorrentAgent> * Map<int, string>> =
+    : Async<Map<int, TorrentAgent> * Map<int, string> * Map<int, TorrentProgress>> =
     async {
         let! stored = ctx.Repository.GetAllTorrentsAsync() |> Async.AwaitTask
 
         let mutable torrents = Map.empty
         let mutable savePaths = Map.empty
+        let mutable initialProgress = Map.empty
 
         for t in stored do
             try
@@ -122,12 +123,38 @@ let private initializeTorrents
                 if t.Status <> Downpour.Storage.Models.TorrentStatus.Paused then
                     agent.Post Start
 
+                let status =
+                    match t.Status with
+                    | Downpour.Storage.Models.TorrentStatus.Paused -> TorrentStatus.Paused
+                    | Downpour.Storage.Models.TorrentStatus.Seeding -> TorrentStatus.Seeding
+                    | Downpour.Storage.Models.TorrentStatus.Downloading -> TorrentStatus.Downloading
+                    | Downpour.Storage.Models.TorrentStatus.Error -> TorrentStatus.Errored "Error"
+                    | _ -> TorrentStatus.Paused
+
+                let downloaded =
+                    [ 0 .. meta.Info.Pieces.Length - 1 ]
+                    |> List.filter (fun i -> PieceStore.getBit bitfield i)
+                    |> List.sumBy (fun i -> int64 (PieceStore.actualPieceLength meta i))
+
+                let progress = {
+                    TorrentId = t.Id
+                    Name = meta.Info.Name
+                    TotalBytes = t.TotalSize
+                    DownloadedBytes = downloaded
+                    UploadedBytes = t.UploadedBytes
+                    DownloadSpeedBps = 0L
+                    UploadSpeedBps = 0L
+                    PeerCount = 0
+                    Status = status
+                }
+
                 torrents <- Map.add t.Id agent torrents
                 savePaths <- Map.add t.Id t.SavePath savePaths
+                initialProgress <- Map.add t.Id progress initialProgress
             with _ ->
                 ()
 
-        return torrents, savePaths
+        return torrents, savePaths, initialProgress
     }
 
 // handlers
@@ -281,6 +308,25 @@ let private handleUpdateSettings
 
     reply.Reply(())
 
+let private handleClearDatabase
+    (ctx: EngineContext)
+    (state: EngineState)
+    (reply: AsyncReplyChannel<unit>)
+    =
+    async {
+        for torrentId, agent in Map.toSeq state.Torrents do
+            agent.Post Pause
+            agent.Dispose()
+            ctx.Notify(EngineEvent.TorrentRemoved torrentId)
+
+        state.Torrents <- Map.empty
+        state.SavePaths <- Map.empty
+        state.LatestProgress <- Map.empty
+
+        do! ctx.Repository.ClearAllAsync() |> Async.AwaitTask
+        reply.Reply(())
+    }
+
 let private handleStop (state: EngineState) (reply: AsyncReplyChannel<unit>) =
     for _, agent in Map.toSeq state.Torrents do
         agent.Post Pause
@@ -304,11 +350,11 @@ let start
             MailboxProcessor<EngineCommand>.Start(fun inbox ->
                 async {
                     let ourPeerId = generatePeerId ()
-                    let! torrents, savePaths = initializeTorrents ctx ourPeerId settings inbox
+                    let! torrents, savePaths, initialProgress = initializeTorrents ctx ourPeerId settings inbox
 
                     let state =
                         { Torrents = torrents
-                          LatestProgress = Map.empty
+                          LatestProgress = initialProgress
                           SavePaths = savePaths
                           Settings = settings
                           Listener = Option.None
@@ -360,6 +406,8 @@ let start
                             // query / shutdown
 
                             | GetAllProgress reply -> reply.Reply(state.LatestProgress |> Map.toList |> List.map snd)
+
+                            | ClearDatabase reply -> do! handleClearDatabase ctx state reply
 
                             | Stop reply -> handleStop state reply
 

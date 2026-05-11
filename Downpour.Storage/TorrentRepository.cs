@@ -101,4 +101,14 @@ public class TorrentRepository(DownpourDbContext context)
         }
         finally { _lock.Release(); }
     }
+
+    public async Task ClearAllAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            await context.Torrents.ExecuteDeleteAsync();
+        }
+        finally { _lock.Release(); }
+    }
 }

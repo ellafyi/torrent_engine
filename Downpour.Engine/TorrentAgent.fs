@@ -94,7 +94,7 @@ let private initPieceStates (meta: TorrentMetaInfo) (bitfield: byte[]) : Map<int
           ExpectedHash = hash
           BlockCount = blockCount
           Blocks = Array.create blockCount Missing
-          Data = Array.zeroCreate pieceLen })
+          Data = [||] })
     |> List.filter (fun (i, _) -> not (PieceStore.getBit bitfield i))
     |> Map.ofList
 
@@ -271,6 +271,10 @@ let private handleBlockReceived
             match Map.tryFind pieceIdx state.PieceStates with
             | Option.None -> () // already verified, ignore duplicate
             | Some ps ->
+                if ps.Data.Length = 0 then
+                    let pieceLen = PieceStore.actualPieceLength ctx.Meta pieceIdx
+                    ps.Data <- Array.zeroCreate pieceLen
+
                 Array.blit data 0 ps.Data offset data.Length
 
                 do!
@@ -361,7 +365,10 @@ let create
           AnnounceTiers = defaultArg meta.AnnounceList [ [ meta.Announce ] ]
           DownloadedThisTick = 0L
           UploadedThisTick = 0L
-          TotalDownloaded = int64 (PieceStore.countSet initialBitfield) * meta.Info.PieceLength
+          TotalDownloaded =
+              [ 0 .. meta.Info.Pieces.Length - 1 ]
+              |> List.filter (fun i -> PieceStore.getBit initialBitfield i)
+              |> List.sumBy (fun i -> int64 (PieceStore.actualPieceLength meta i))
           TotalUploaded = 0L
           LastDownloadSpeedBps = 0L
           LastUploadSpeedBps = 0L

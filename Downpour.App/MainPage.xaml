@@ -38,6 +38,10 @@
                     IsEnabled="{Binding HasSelection}"
                     WidthRequest="110" />
 
+            <Button Text="Clear DB"
+                    Command="{Binding ClearDatabaseCommand}"
+                    WidthRequest="90" />
+
         </HorizontalStackLayout>
 
         <!-- Torrent list -->

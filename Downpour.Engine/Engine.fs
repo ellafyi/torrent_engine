@@ -15,6 +15,7 @@ type IEngine =
     abstract PauseTorrentAsync: torrentId: int -> Task
     abstract ResumeTorrentAsync: torrentId: int -> Task
     abstract UpdateSettingsAsync: EngineSettings -> Task
+    abstract ClearDatabaseAsync: unit -> Task
     abstract GetTorrents: unit -> TorrentProgress list
     abstract Events: System.IObservable<EngineEvent>
 
@@ -71,6 +72,9 @@ type Engine(initialSettings: EngineSettings) =
 
         member _.UpdateSettingsAsync(settings) =
             postAndAwait (fun ch -> UpdateSettings(settings, ch))
+
+        member _.ClearDatabaseAsync() =
+            postAndAwait (fun ch -> ClearDatabase ch)
 
         member _.Events = subject :> System.IObservable<EngineEvent>
 
