@@ -30,6 +30,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Downpour.Tracker.Tests", "D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downpour.Console", "Downpour.Console\Downpour.Console.csproj", "{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downpour.App", "Downpour.App\Downpour.App.csproj", "{4F67F6B9-D1CA-4004-AB62-75D9AD38E44F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -84,5 +86,11 @@ Global
 		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFBBE7B8-D7BC-49F5-B9BD-568BB27F55ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F67F6B9-D1CA-4004-AB62-75D9AD38E44F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F67F6B9-D1CA-4004-AB62-75D9AD38E44F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F67F6B9-D1CA-4004-AB62-75D9AD38E44F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F67F6B9-D1CA-4004-AB62-75D9AD38E44F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 EndGlobal
