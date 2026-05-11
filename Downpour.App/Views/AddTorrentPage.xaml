@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Downpour.App.ViewModels"
+             x:Class="Downpour.App.Views.AddTorrentPage"
+             x:DataType="vm:AddTorrentViewModel"
+             Title="Add Torrent">
+
+    <Grid VerticalOptions="Center" HorizontalOptions="Center" Padding="40">
+        <Border WidthRequest="500"
+                Padding="28"
+                HorizontalOptions="Center"
+                StrokeShape="RoundRectangle 8">
+
+            <VerticalStackLayout Spacing="16">
+
+                <Label Text="Add Torrent"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       Margin="0,0,0,4" />
+
+                <!-- Torrent file -->
+                <Label Text="Torrent file" FontAttributes="Bold" FontSize="13" />
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                    <Label Grid.Column="0"
+                           Text="{Binding TorrentFilePath, TargetNullValue='No file selected'}"
+                           LineBreakMode="MiddleTruncation"
+                           VerticalOptions="Center"
+                           FontSize="13" />
+                    <Button Grid.Column="1"
+                            Text="Browse..."
+                            Command="{Binding BrowseTorrentFileCommand}"
+                            WidthRequest="90" />
+                </Grid>
+
+                <!-- Download folder -->
+                <Label Text="Download to" FontAttributes="Bold" FontSize="13" />
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                    <Label Grid.Column="0"
+                           Text="{Binding DownloadPath, TargetNullValue='No folder selected'}"
+                           LineBreakMode="MiddleTruncation"
+                           VerticalOptions="Center"
+                           FontSize="13" />
+                    <Button Grid.Column="1"
+                            Text="Browse..."
+                            Command="{Binding BrowseDownloadFolderCommand}"
+                            WidthRequest="90" />
+                </Grid>
+
+                <!-- Action buttons -->
+                <HorizontalStackLayout HorizontalOptions="End"
+                                       Spacing="8"
+                                       Margin="0,8,0,0">
+                    <Button Text="Cancel"
+                            Command="{Binding CancelDialogCommand}"
+                            WidthRequest="90" />
+                    <Button Text="Add"
+                            Command="{Binding ConfirmCommand}"
+                            WidthRequest="90" />
+                </HorizontalStackLayout>
+
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentPage>
