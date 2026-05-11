@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Downpour.App.ViewModels"
+             x:Class="Downpour.App.MainPage"
+             x:DataType="vm:MainViewModel"
+             Title="Downpour">
+
+    <Grid RowDefinitions="Auto, *">
+
+        <!-- Toolbar -->
+        <HorizontalStackLayout Grid.Row="0"
+                               Padding="8,6"
+                               Spacing="6"
+                               BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A2A}">
+
+            <Button Text="Add"
+                    Command="{Binding AddTorrentCommand}"
+                    WidthRequest="80" />
+
+            <Button Text="Pause"
+                    Command="{Binding PauseTorrentCommand}"
+                    IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}"
+                    WidthRequest="90" />
+
+            <Button Text="Resume"
+                    Command="{Binding ResumeTorrentCommand}"
+                    IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}"
+                    WidthRequest="90" />
+
+            <Button Text="Remove"
+                    Command="{Binding RemoveTorrentCommand}"
+                    IsEnabled="{Binding HasSelection}"
+                    WidthRequest="90" />
+
+            <Button Text="Delete Files"
+                    Command="{Binding RemoveAndDeleteCommand}"
+                    IsEnabled="{Binding HasSelection}"
+                    WidthRequest="110" />
+
+        </HorizontalStackLayout>
+
+        <!-- Torrent list -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Torrents}"
+                        SelectionMode="Single"
+                        SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:TorrentItemViewModel">
+                    <VerticalStackLayout Padding="14,10" Spacing="5">
+
+                        <!-- Name + status -->
+                        <Grid ColumnDefinitions="*, Auto">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Name}"
+                                   FontAttributes="Bold"
+                                   FontSize="14"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding StatusLabel}"
+                                   FontSize="12"
+                                   VerticalOptions="Center"
+                                   Margin="8,0,0,0" />
+                        </Grid>
+
+                        <!-- Progress bar -->
+                        <ProgressBar Progress="{Binding ProgressFraction}"
+                                     HeightRequest="6" />
+
+                        <!-- Size / speeds / peers -->
+                        <Grid ColumnDefinitions="2*, *, *, *">
+                            <Label Grid.Column="0"
+                                   Text="{Binding SizeText}"
+                                   FontSize="11" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding DownloadSpeed}"
+                                   FontSize="11" />
+                            <Label Grid.Column="2"
+                                   Text="{Binding UploadSpeed}"
+                                   FontSize="11" />
+                            <Label Grid.Column="3"
+                                   Text="{Binding PeerCountText}"
+                                   FontSize="11"
+                                   HorizontalOptions="End" />
+                        </Grid>
+
+                        <BoxView HeightRequest="1"
+                                 Color="{AppThemeBinding Light=#E0E0E0, Dark=#3A3A3A}"
+                                 Margin="0,2,0,0" />
+
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <Label Text="No torrents added yet. Click '+ Add' to get started."
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"
+                       Margin="0,60,0,0"
+                       FontSize="14" />
+            </CollectionView.EmptyView>
+
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>
