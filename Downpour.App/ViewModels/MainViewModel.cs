@@ -1,15 +1,17 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Downpour.App.Services;
+using Downpour.App.Views;
 using Downpour.Engine;
 using Downpour.Engine.Types;
-using Downpour.App.Views;
 
 namespace Downpour.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
     private readonly IEngine _engine;
+    private readonly SettingsService _settingsService;
     private IDisposable? _subscription;
 
     [ObservableProperty]
@@ -29,9 +31,10 @@ public partial class MainViewModel : ObservableObject
 
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
 
-    public MainViewModel(IEngine engine)
+    public MainViewModel(IEngine engine, SettingsService settingsService)
     {
         _engine = engine;
+        _settingsService = settingsService;
     }
 
     public async Task InitializeAsync()
@@ -183,6 +186,19 @@ public partial class MainViewModel : ObservableObject
     {
         if (SelectedTorrent == null) return;
         await _engine.RemoveTorrentAsync(SelectedTorrent.TorrentId, true);
+    }
+
+    [RelayCommand]
+    private async Task OpenSettings()
+    {
+        var vm = new SettingsViewModel();
+        vm.Initialize(_settingsService.Load());
+        var page = new SettingsPage(vm);
+        await Shell.Current.Navigation.PushModalAsync(page, false);
+        var result = await vm.WaitForResultAsync();
+        if (result == null) return;
+        _settingsService.Save(result);
+        await _engine.UpdateSettingsAsync(result);
     }
 
     [RelayCommand]

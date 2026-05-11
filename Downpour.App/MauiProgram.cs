@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui;
+using Downpour.App.Services;
 using Downpour.App.ViewModels;
 using Downpour.Engine;
 using Downpour.Engine.Types;
@@ -43,8 +44,9 @@ public static class MauiProgram
         });
 #endif
 
-        builder.Services.AddSingleton<IEngine>(_ =>
-            TorrentEngine.createEngine(new EngineSettings(6881, true, 0, 0)));
+        builder.Services.AddSingleton<SettingsService>();
+        builder.Services.AddSingleton<IEngine>(sp =>
+            TorrentEngine.createEngine(sp.GetRequiredService<SettingsService>().Load()));
 
         builder.Services.AddSingleton<MainViewModel>();
 

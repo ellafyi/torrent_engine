@@ -47,6 +47,13 @@
                     Text="Clear DB"
                     Style="{StaticResource FlatButton}"
                     Command="{Binding ClearDatabaseCommand}" />
+
+            <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+
+            <Button x:Name="BtnSettings"
+                    Text="Settings"
+                    Style="{StaticResource FlatButton}"
+                    Command="{Binding OpenSettingsCommand}" />
         </HorizontalStackLayout>
 
         <!-- Torrent list -->
