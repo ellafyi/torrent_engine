@@ -16,11 +16,18 @@ public partial class TorrentItemViewModel : ObservableObject
     [ObservableProperty] public partial bool CanPause { get; set; }
     [ObservableProperty] public partial bool CanResume { get; set; }
 
+    public void UpdateStatus(TorrentStatus status)
+    {
+        StatusLabel = GetStatusLabel(status);
+        CanPause = status.IsDownloading || status.IsSeeding || status.IsChecking;
+        CanResume = status.IsPaused;
+    }
+
     public void Update(TorrentProgress p)
     {
         TorrentId = p.TorrentId;
         Name = p.Name;
-        StatusLabel = GetStatusLabel(p.Status);
+        UpdateStatus(p.Status);
         ProgressFraction = p.TotalBytes > 0
             ? Math.Clamp((double)p.DownloadedBytes / p.TotalBytes, 0.0, 1.0)
             : 0.0;
@@ -28,8 +35,6 @@ public partial class TorrentItemViewModel : ObservableObject
         DownloadSpeed = $"↓ {FormatSpeed(p.DownloadSpeedBps)}";
         UploadSpeed = $"↑ {FormatSpeed(p.UploadSpeedBps)}";
         PeerCountText = $"{p.PeerCount} peers";
-        CanPause = p.Status.IsDownloading || p.Status.IsSeeding || p.Status.IsChecking;
-        CanResume = p.Status.IsPaused;
     }
 
     private static string GetStatusLabel(TorrentStatus status)

@@ -150,12 +150,13 @@ let private handleAddTorrent
             match existing |> Option.ofObj with
             | Some _ -> reply.Reply(Error "already added")
             | None ->
+                let fullSavePath = Path.Combine(savePath, meta.Info.Name)
                 let torrent =
                     Downpour.Storage.Models.Torrent(
                         Name = meta.Info.Name,
                         InfoHash = infoHex,
                         TotalSize = totalSizeOf meta,
-                        SavePath = savePath,
+                        SavePath = fullSavePath,
                         Status = Downpour.Storage.Models.TorrentStatus.Downloading,
                         TorrentFileData = bytes
                     )
@@ -171,7 +172,7 @@ let private handleAddTorrent
                     TorrentAgent.create
                         torrent.Id
                         meta
-                        savePath
+                        fullSavePath
                         bitfield
                         state.OurPeerId
                         state.Settings
@@ -181,7 +182,7 @@ let private handleAddTorrent
                 agent.Post Start
 
                 state.Torrents <- Map.add torrent.Id agent state.Torrents
-                state.SavePaths <- Map.add torrent.Id savePath state.SavePaths
+                state.SavePaths <- Map.add torrent.Id fullSavePath state.SavePaths
                 reply.Reply(Ok torrent.Id)
                 ctx.Notify(EngineEvent.TorrentAdded torrent.Id)
         with ex ->

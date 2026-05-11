@@ -23,6 +23,13 @@ public partial class MainPage : ContentPage
 
         Window.Destroying += async (_, _) => await _viewModel.ShutdownAsync();
 
-        await Task.Run(_viewModel.InitializeAsync);
+        try
+        {
+            await Task.Run(_viewModel.InitializeAsync);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Startup Error", $"Engine failed to start: {ex.Message}", "OK");
+        }
     }
 }

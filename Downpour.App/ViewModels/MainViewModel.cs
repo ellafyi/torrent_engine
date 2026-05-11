@@ -30,17 +30,6 @@ public partial class MainViewModel : ObservableObject
     {
         _subscription = _engine.Events.Subscribe(new EventObserver(OnEngineEvent));
         await _engine.StartAsync();
-
-        var initial = _engine.GetTorrents();
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            foreach (var p in initial)
-            {
-                var vm = new TorrentItemViewModel();
-                vm.Update(p);
-                Torrents.Add(vm);
-            }
-        });
     }
 
     private void OnEngineEvent(EngineEvent ev)
@@ -57,6 +46,16 @@ public partial class MainViewModel : ObservableObject
                         Torrents.Add(item);
                     }
                     item.Update(p);
+                    break;
+
+                case EngineEvent.StatusChanged sc:
+                    var scItem = Torrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
+                    if (scItem == null)
+                    {
+                        scItem = new TorrentItemViewModel { TorrentId = sc.torrentId };
+                        Torrents.Add(scItem);
+                    }
+                    scItem.UpdateStatus(sc.Item2);
                     break;
 
                 case EngineEvent.TorrentRemoved removed:
