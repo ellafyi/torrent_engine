@@ -1,3 +1,3 @@
 namespace Downpour.App.Models;
 
-public record AddTorrentParameters(string TorrentFilePath, string DownloadPath);
+public record AddTorrentParameters(IReadOnlyList<string> TorrentFilePaths, string DownloadPath);

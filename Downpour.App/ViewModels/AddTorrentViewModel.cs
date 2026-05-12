@@ -17,15 +17,24 @@ public partial class AddTorrentViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-    public partial string? TorrentFilePath { get; set; }
+    [NotifyPropertyChangedFor(nameof(TorrentFileNames))]
+    [NotifyPropertyChangedFor(nameof(ConfirmButtonText))]
+    public partial IReadOnlyList<string> TorrentFilePaths { get; set; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
     public partial string? DownloadPath { get; set; }
 
+    public IReadOnlyList<string> TorrentFileNames =>
+        TorrentFilePaths.Select(Path.GetFileName).ToList()!;
+
+    public string ConfirmButtonText => TorrentFilePaths.Count > 1
+        ? $"Add ({TorrentFilePaths.Count})"
+        : "Add";
+
     public void Reset()
     {
-        TorrentFilePath = null;
+        TorrentFilePaths = [];
         DownloadPath = null;
         _tcs = new TaskCompletionSource<AddTorrentParameters?>();
     }
@@ -35,9 +44,11 @@ public partial class AddTorrentViewModel : ObservableObject
     public void Cancel() => _tcs.TrySetResult(null);
 
     [RelayCommand]
-    private async Task BrowseTorrentFile()
+    private async Task BrowseTorrentFiles()
     {
-        TorrentFilePath = await _filePicker.PickTorrentFileAsync();
+        var paths = await _filePicker.PickTorrentFilesAsync();
+        if (paths.Count > 0)
+            TorrentFilePaths = paths;
     }
 
     [RelayCommand]
@@ -47,10 +58,10 @@ public partial class AddTorrentViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanConfirm))]
-    private void Confirm() => _tcs.TrySetResult(new AddTorrentParameters(TorrentFilePath!, DownloadPath!));
+    private void Confirm() => _tcs.TrySetResult(new AddTorrentParameters(TorrentFilePaths, DownloadPath!));
 
     private bool CanConfirm() =>
-        !string.IsNullOrEmpty(TorrentFilePath) && !string.IsNullOrEmpty(DownloadPath);
+        TorrentFilePaths.Count > 0 && !string.IsNullOrEmpty(DownloadPath);
 
     [RelayCommand]
     private void CancelDialog() => Cancel();

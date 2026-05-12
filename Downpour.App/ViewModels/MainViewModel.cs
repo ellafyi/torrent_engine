@@ -215,25 +215,28 @@ public partial class MainViewModel : ObservableObject
         var result = await _navigation.ShowAddTorrentAsync();
         if (result == null) return;
 
-        try
+        foreach (var path in result.TorrentFilePaths)
         {
-            var bytes = await File.ReadAllBytesAsync(result.TorrentFilePath);
-            var torrentId = await _engine.AddTorrentAsync(bytes, result.DownloadPath);
-
-            if (!Torrents.Any(t => t.TorrentId == torrentId))
+            try
             {
-                var torrentVm = new TorrentItemViewModel
+                var bytes = await File.ReadAllBytesAsync(path);
+                var torrentId = await _engine.AddTorrentAsync(bytes, result.DownloadPath);
+
+                if (!Torrents.Any(t => t.TorrentId == torrentId))
                 {
-                    TorrentId = torrentId,
-                    Name = Path.GetFileNameWithoutExtension(result.TorrentFilePath),
-                    StatusLabel = "Starting..."
-                };
-                Torrents.Add(torrentVm);
+                    Torrents.Add(new TorrentItemViewModel
+                    {
+                        TorrentId = torrentId,
+                        Name = Path.GetFileNameWithoutExtension(path),
+                        StatusLabel = "Starting..."
+                    });
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            await _dialog.ShowErrorAsync("Error", $"Failed to add torrent: {ex.Message}");
+            catch (Exception ex)
+            {
+                await _dialog.ShowErrorAsync("Error",
+                    $"Failed to add '{Path.GetFileName(path)}': {ex.Message}");
+            }
         }
     }
 

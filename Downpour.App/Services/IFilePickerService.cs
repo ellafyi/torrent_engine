@@ -2,6 +2,6 @@ namespace Downpour.App.Services;
 
 public interface IFilePickerService
 {
-    Task<string?> PickTorrentFileAsync();
+    Task<IReadOnlyList<string>> PickTorrentFilesAsync();
     Task<string?> PickFolderAsync();
 }
