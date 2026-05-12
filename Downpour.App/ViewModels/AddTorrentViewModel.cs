@@ -13,17 +13,36 @@ public partial class AddTorrentViewModel : ObservableObject
     public AddTorrentViewModel(IFilePickerService filePicker)
     {
         _filePicker = filePicker;
+        TorrentFilePaths = [];
     }
 
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-    [NotifyPropertyChangedFor(nameof(TorrentFileNames))]
-    [NotifyPropertyChangedFor(nameof(ConfirmButtonText))]
-    public partial IReadOnlyList<string> TorrentFilePaths { get; set; } = [];
+    private IReadOnlyList<string> _torrentFilePaths = [];
+    public IReadOnlyList<string> TorrentFilePaths
+    {
+        get => _torrentFilePaths;
+        set
+        {
+            if (SetProperty(ref _torrentFilePaths, value))
+            {
+                ConfirmCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(TorrentFileNames));
+                OnPropertyChanged(nameof(ConfirmButtonText));
+            }
+        }
+    }
 
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-    public partial string? DownloadPath { get; set; }
+    private string? _downloadPath;
+    public string? DownloadPath
+    {
+        get => _downloadPath;
+        set
+        {
+            if (SetProperty(ref _downloadPath, value))
+            {
+                ConfirmCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
 
     public IReadOnlyList<string> TorrentFileNames =>
         TorrentFilePaths.Select(Path.GetFileName).ToList()!;

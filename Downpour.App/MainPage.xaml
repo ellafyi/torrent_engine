@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Downpour.App.ViewModels"
@@ -10,161 +9,186 @@
              Title="Downpour"
              BackgroundColor="Transparent">
 
-    <Grid RowDefinitions="Auto, *, Auto">
+    <Grid ColumnDefinitions="200, *, 300">
         <Grid.GestureRecognizers>
             <TapGestureRecognizer Tapped="OnBackgroundTapped" />
         </Grid.GestureRecognizers>
 
-        <!-- Toolbar -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto, *" VerticalOptions="Center" Margin="8,8,8,8">
-            <HorizontalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
-                <Button x:Name="BtnAdd"
-                        Text="Add"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding AddTorrentCommand}" />
+        <!-- Left Pane: Sidebar Filters -->
+        <Border Grid.Column="0" 
+                BackgroundColor="{AppThemeBinding Light=#05000000, Dark=#05FFFFFF}"
+                StrokeThickness="0"
+                Margin="0,0,1,0">
+            <VerticalStackLayout Spacing="4" Padding="16,24">
+                <Label Text="Filters" FontSize="14" FontAttributes="Bold" Opacity="0.5" Margin="0,0,0,12"/>
+                
+                <Button Text="All" Command="{Binding SetFilterCommand}" CommandParameter="All" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
+                <Button Text="Downloading" Command="{Binding SetFilterCommand}" CommandParameter="Downloading" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
+                <Button Text="Seeding" Command="{Binding SetFilterCommand}" CommandParameter="Seeding" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
+                <Button Text="Paused" Command="{Binding SetFilterCommand}" CommandParameter="Paused" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
+                <Button Text="Error" Command="{Binding SetFilterCommand}" CommandParameter="Error" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
+            </VerticalStackLayout>
+        </Border>
 
-                <Button x:Name="BtnPause"
-                        Text="Pause"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding PauseTorrentCommand}"
-                        IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}" />
-
-                <Button x:Name="BtnResume"
-                        Text="Resume"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding ResumeTorrentCommand}"
-                        IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}" />
-
-                <Button x:Name="BtnRemove"
-                        Text="Remove"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding RemoveTorrentCommand}"
-                        IsEnabled="{Binding HasSelection}" />
-
-                <Button x:Name="BtnDelete"
-                        Text="Delete"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding RemoveAndDeleteCommand}"
-                        IsEnabled="{Binding HasSelection}" />
-
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
-                         VerticalOptions="Center" />
-
-                <Button x:Name="BtnClearDb"
-                        Text="Clear DB"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding ClearDatabaseCommand}" />
-
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
-                         VerticalOptions="Center" />
-
-                <Button x:Name="BtnSettings"
-                        Text="Settings"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding OpenSettingsCommand}" />
-
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
-                         VerticalOptions="Center" />
-
-                <Button x:Name="BtnDetails"
-                        Text="Details"
-                        Style="{StaticResource FlatButton}"
-                        Command="{Binding OpenDetailsCommand}"
-                        IsEnabled="{Binding HasSelection}" />
+        <!-- Center Pane: Main Content -->
+        <Grid Grid.Column="1" RowDefinitions="Auto, Auto, *, Auto">
+            
+            <!-- Toolbar -->
+            <HorizontalStackLayout Grid.Row="0" Spacing="4" VerticalOptions="Center" Margin="16,16,16,12">
+                <Button x:Name="BtnAdd" Text="➕ Add" Style="{StaticResource FlatButton}" Command="{Binding AddTorrentCommand}" />
+                <Button x:Name="BtnPause" Text="⏸ Pause" Style="{StaticResource FlatButton}" Command="{Binding PauseTorrentCommand}" IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}" />
+                <Button x:Name="BtnResume" Text="▶ Resume" Style="{StaticResource FlatButton}" Command="{Binding ResumeTorrentCommand}" IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}" />
+                <Button x:Name="BtnRemove" Text="➖ Remove" Style="{StaticResource FlatButton}" Command="{Binding RemoveTorrentCommand}" IsEnabled="{Binding HasSelection}" />
+                <Button x:Name="BtnDelete" Text="🗑 Delete" Style="{StaticResource FlatButton}" Command="{Binding RemoveAndDeleteCommand}" IsEnabled="{Binding HasSelection}" />
+                
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="8,0" Opacity="0.5" VerticalOptions="Center" />
+                
+                <Button x:Name="BtnClearDb" Text="🧹 Clear DB" Style="{StaticResource FlatButton}" Command="{Binding ClearDatabaseCommand}" />
+                
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="8,0" Opacity="0.5" VerticalOptions="Center" />
+                
+                <Button x:Name="BtnSettings" Text="⚙ Settings" Style="{StaticResource FlatButton}" Command="{Binding OpenSettingsCommand}" />
             </HorizontalStackLayout>
 
-            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="10" VerticalOptions="Center"
-                                   Margin="0,0,4,0">
-                <Label Text="{Binding ThrottleLimitText}"
-                       IsVisible="{Binding HasThrottleLimits}"
-                       FontSize="12"
-                       Opacity="0.6"
-                       VerticalOptions="Center" />
-                <BoxView IsVisible="{Binding HasThrottleLimits}"
-                         WidthRequest="1" HeightRequest="12" Color="Gray" Opacity="0.5" VerticalOptions="Center" />
-                <Label Text="{Binding AllTimeStats}"
-                       FontSize="11"
-                       Opacity="0.6"
-                       VerticalOptions="Center" />
-            </HorizontalStackLayout>
+            <!-- Dashboard Header -->
+            <Border Grid.Row="1" Margin="16,0,16,12" Padding="16,12" BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#202020}" StrokeThickness="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="*, *, *">
+                    <VerticalStackLayout Grid.Column="0">
+                        <Label Text="Download Speed" FontSize="11" Opacity="0.6"/>
+                        <Label Text="{Binding GlobalDownloadSpeed}" FontSize="16" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#2E8B57, Dark=#81C784}"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="1">
+                        <Label Text="Upload Speed" FontSize="11" Opacity="0.6"/>
+                        <Label Text="{Binding GlobalUploadSpeed}" FontSize="16" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#1565C0, Dark=#64B5F6}"/>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Grid.Column="2">
+                        <Label Text="All Time (Down / Up)" FontSize="11" Opacity="0.6"/>
+                        <Label Text="{Binding AllTimeStats}" FontSize="13" VerticalOptions="Center" Margin="0,2,0,0"/>
+                        <Label Text="{Binding ThrottleLimitText}" IsVisible="{Binding HasThrottleLimits}" FontSize="10" Opacity="0.5" Margin="0,2,0,0"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- Torrent list -->
+            <CollectionView x:Name="TorrentList"
+                            Grid.Row="2"
+                            BackgroundColor="Transparent"
+                            ItemsSource="{Binding Torrents}"
+                            SelectionMode="Single"
+                            SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}"
+                            SelectionChanged="OnTorrentSelectionChanged">
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TorrentItemViewModel">
+                        <Border Margin="16,3"
+                                Padding="12,8"
+                                BackgroundColor="{Binding CardBackgroundColor}"
+                                Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
+                                StrokeThickness="1">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="8" />
+                            </Border.StrokeShape>
+                            <Grid ColumnDefinitions="Auto, Auto, *, 2*, Auto, Auto"
+                                  ColumnSpacing="10"
+                                  VerticalOptions="Center">
+                                <Label Grid.Column="0"
+                                       Text="{Binding StatusLabel}"
+                                       TextColor="{Binding StatusTextColor}"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       MinimumWidthRequest="88"
+                                       VerticalOptions="Center" />
+                                <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                    <Label Text="{Binding DownloadSpeed}" FontSize="11" VerticalOptions="Center" />
+                                    <Label Text="{Binding UploadSpeed}" FontSize="11" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label Grid.Column="2"
+                                       Text="{Binding Name}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       LineBreakMode="TailTruncation"
+                                       VerticalOptions="Center" />
+                                <ProgressBar Grid.Column="3"
+                                             Progress="{Binding ProgressFraction}"
+                                             HeightRequest="6"
+                                             VerticalOptions="Center" />
+                                <Label Grid.Column="4"
+                                       Text="{Binding ProgressPercent}"
+                                       FontSize="11"
+                                       MinimumWidthRequest="34"
+                                       HorizontalTextAlignment="End"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="5"
+                                       Text="{Binding PeerCountText}"
+                                       FontSize="11"
+                                       MinimumWidthRequest="28"
+                                       HorizontalTextAlignment="End"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <Label Text="No torrents matched."
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Margin="0,60,0,0"
+                           FontSize="14"
+                           Opacity="0.5" />
+                </CollectionView.EmptyView>
+            </CollectionView>
+
+            <!-- Global speed chart -->
+            <controls:SpeedChartView Grid.Row="3"
+                                     HeightRequest="150"
+                                     Margin="0"
+                                     DownloadSamples="{Binding GlobalDownloadHistory}"
+                                     UploadSamples="{Binding GlobalUploadHistory}" />
+
         </Grid>
 
-        <!-- Torrent list -->
-        <CollectionView x:Name="TorrentList"
-                        Grid.Row="1"
-                        BackgroundColor="Transparent"
-                        ItemsSource="{Binding Torrents}"
-                        SelectionMode="Single"
-                        SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}"
-                        SelectionChanged="OnTorrentSelectionChanged">
+        <!-- Right Pane: Split-View Details -->
+        <Border Grid.Column="2" 
+                IsVisible="{Binding HasSelection}"
+                BackgroundColor="{AppThemeBinding Light=#F9F9F9, Dark=#1E1E1E}"
+                StrokeThickness="0"
+                Margin="1,0,0,0">
+            <VerticalStackLayout Spacing="14" Padding="20,24" BindingContext="{Binding SelectedTorrent}" x:DataType="vm:TorrentItemViewModel">
+                <Label Text="Details" FontSize="14" FontAttributes="Bold" Opacity="0.5" Margin="0,0,0,4"/>
+                
+                <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="WordWrap" />
+                
+                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                    <Label Grid.Column="0" Text="{Binding StatusLabel}" TextColor="{Binding StatusTextColor}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" />
+                    <Label Grid.Column="2" Text="{Binding PeerCountText}" FontSize="12" Opacity="0.7" VerticalOptions="Center" />
+                </Grid>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="vm:TorrentItemViewModel">
-                    <Border Margin="8,3"
-                            Padding="12,8"
-                            BackgroundColor="{Binding CardBackgroundColor}"
-                            Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
-                            StrokeThickness="1">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="8" />
-                        </Border.StrokeShape>
-                        <Grid ColumnDefinitions="Auto, Auto, *, 2*, Auto, Auto"
-                              ColumnSpacing="10"
-                              VerticalOptions="Center">
-                            <Label Grid.Column="0"
-                                   Text="{Binding StatusLabel}"
-                                   TextColor="{Binding StatusTextColor}"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   MinimumWidthRequest="88"
-                                   VerticalOptions="Center" />
-                            <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                <Label Text="{Binding DownloadSpeed}" FontSize="11" VerticalOptions="Center" />
-                                <Label Text="{Binding UploadSpeed}" FontSize="11" VerticalOptions="Center" />
-                            </HorizontalStackLayout>
-                            <Label Grid.Column="2"
-                                   Text="{Binding Name}"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   LineBreakMode="TailTruncation"
-                                   VerticalOptions="Center" />
-                            <ProgressBar Grid.Column="3"
-                                         Progress="{Binding ProgressFraction}"
-                                         HeightRequest="6"
-                                         VerticalOptions="Center" />
-                            <Label Grid.Column="4"
-                                   Text="{Binding ProgressPercent}"
-                                   FontSize="11"
-                                   MinimumWidthRequest="34"
-                                   HorizontalTextAlignment="End"
-                                   VerticalOptions="Center" />
-                            <Label Grid.Column="5"
-                                   Text="{Binding PeerCountText}"
-                                   FontSize="11"
-                                   MinimumWidthRequest="28"
-                                   HorizontalTextAlignment="End"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                    <ProgressBar Grid.Column="0" Progress="{Binding ProgressFraction}" HeightRequest="6" VerticalOptions="Center" />
+                    <Label Grid.Column="1" Text="{Binding ProgressPercent}" FontSize="12" MinimumWidthRequest="38" HorizontalTextAlignment="End" VerticalOptions="Center" />
+                </Grid>
 
-            <CollectionView.EmptyView>
-                <Label Text="No torrents added yet. Click '+ Add' to get started."
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center"
-                       Margin="0,60,0,0"
-                       FontSize="14" />
-            </CollectionView.EmptyView>
+                <Label Text="{Binding SizeText}" FontSize="12" Opacity="0.7" />
 
-        </CollectionView>
+                <HorizontalStackLayout Spacing="16">
+                    <Label Text="{Binding DownloadSpeed}" FontSize="12" TextColor="{AppThemeBinding Light=#2E8B57, Dark=#81C784}" />
+                    <Label Text="{Binding UploadSpeed}" FontSize="12" TextColor="{AppThemeBinding Light=#1565C0, Dark=#64B5F6}" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </Border>
 
-        <!-- Global speed chart — flush to bottom edge -->
-        <controls:SpeedChartView Grid.Row="2"
-                                 HeightRequest="150"
-                                 Margin="0"
-                                 DownloadSamples="{Binding GlobalDownloadHistory}"
-                                 UploadSamples="{Binding GlobalUploadHistory}" />
+        <!-- Placeholder for right pane when empty -->
+        <Border Grid.Column="2" 
+                IsVisible="{Binding HasNoSelection}"
+                BackgroundColor="{AppThemeBinding Light=#F9F9F9, Dark=#1E1E1E}"
+                StrokeThickness="0"
+                Margin="1,0,0,0">
+            <Label Text="Select a torrent" HorizontalOptions="Center" VerticalOptions="Center" Opacity="0.4" />
+        </Border>
 
     </Grid>
 

@@ -12,14 +12,21 @@ namespace Downpour.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly List<TorrentItemViewModel> _allTorrents = [];
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
+    private readonly IDialogService _dialog;
     private readonly IEngine _engine;
+    private readonly INavigationService _navigation;
     private readonly ConcurrentDictionary<int, TorrentProgress> _pendingProgress = new();
     private readonly SettingsService _settingsService;
-    private readonly INavigationService _navigation;
-    private readonly IDialogService _dialog;
     private readonly ISpeedHistoryService _speedHistory;
+
+    private string _allTimeStats = "↓ 0 B  ↑ 0 B";
     private Timer? _flushTimer;
+
+    private IReadOnlyList<long> _globalDownloadHistory = [];
+
+    private IReadOnlyList<long> _globalUploadHistory = [];
     private IDisposable? _subscription;
 
     public MainViewModel(IEngine engine, SettingsService settingsService,
@@ -34,32 +41,82 @@ public partial class MainViewModel : ObservableObject
         RefreshThrottleDisplay();
     }
 
-    [ObservableProperty] public partial ObservableCollection<TorrentItemViewModel> Torrents { get; set; } = [];
+    public ObservableCollection<TorrentItemViewModel> Torrents { get; } = [];
+
+    private string _currentFilter = "All";
+    public string CurrentFilter
+    {
+        get => _currentFilter;
+        set
+        {
+            if (SetProperty(ref _currentFilter, value))
+            {
+                ApplyFilter();
+            }
+        }
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelection))]
+    [NotifyPropertyChangedFor(nameof(HasNoSelection))]
     public partial TorrentItemViewModel? SelectedTorrent { get; set; }
 
     public bool HasSelection => SelectedTorrent != null;
+    public bool HasNoSelection => SelectedTorrent == null;
 
     [ObservableProperty] public partial string GlobalDownloadSpeed { get; set; } = "↓ 0 B/s";
 
     [ObservableProperty] public partial string GlobalUploadSpeed { get; set; } = "↑ 0 B/s";
 
-    private string _allTimeStats = "↓ 0 B  ↑ 0 B";
-    public string AllTimeStats { get => _allTimeStats; private set => SetProperty(ref _allTimeStats, value); }
+    public string AllTimeStats
+    {
+        get => _allTimeStats;
+        private set => SetProperty(ref _allTimeStats, value);
+    }
 
-    private IReadOnlyList<long> _globalDownloadHistory = [];
-    public IReadOnlyList<long> GlobalDownloadHistory { get => _globalDownloadHistory; private set => SetProperty(ref _globalDownloadHistory, value); }
+    public IReadOnlyList<long> GlobalDownloadHistory
+    {
+        get => _globalDownloadHistory;
+        private set => SetProperty(ref _globalDownloadHistory, value);
+    }
 
-    private IReadOnlyList<long> _globalUploadHistory = [];
-    public IReadOnlyList<long> GlobalUploadHistory { get => _globalUploadHistory; private set => SetProperty(ref _globalUploadHistory, value); }
+    public IReadOnlyList<long> GlobalUploadHistory
+    {
+        get => _globalUploadHistory;
+        private set => SetProperty(ref _globalUploadHistory, value);
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasThrottleLimits))]
     public partial string ThrottleLimitText { get; set; } = "";
 
     public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
+
+
+
+    [RelayCommand]
+    private void SetFilter(string filter)
+    {
+        CurrentFilter = filter;
+    }
+
+    private void ApplyFilter()
+    {
+        Torrents.Clear();
+        foreach (var t in _allTorrents)
+            if (MatchesFilter(t, CurrentFilter))
+                Torrents.Add(t);
+    }
+
+    private static bool MatchesFilter(TorrentItemViewModel t, string filter)
+    {
+        if (filter == "All") return true;
+        if (filter == "Downloading" && t.StatusLabel == "Downloading") return true;
+        if (filter == "Seeding" && t.StatusLabel == "Seeding") return true;
+        if (filter == "Paused" && t.StatusLabel == "Paused") return true;
+        if (filter == "Error" && t.StatusLabel.StartsWith("Error")) return true;
+        return false;
+    }
 
     private void RefreshThrottleDisplay()
     {
@@ -87,7 +144,8 @@ public partial class MainViewModel : ObservableObject
             {
                 var vm = new TorrentItemViewModel();
                 vm.Update(p);
-                Torrents.Add(vm);
+                _allTorrents.Add(vm);
+                if (MatchesFilter(vm, CurrentFilter)) Torrents.Add(vm);
             }
         });
     }
@@ -104,8 +162,13 @@ public partial class MainViewModel : ObservableObject
 
                 case EngineEvent.StatusChanged sc:
                     _pendingProgress.TryRemove(sc.torrentId, out _);
-                    var scItem = Torrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
-                    if (scItem != null) scItem.UpdateStatus(sc.Item2);
+                    var scItem = _allTorrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
+                    if (scItem != null)
+                    {
+                        scItem.UpdateStatus(sc.Item2);
+                        UpdateItemVisibility(scItem);
+                    }
+
                     if (sc.Item2.IsPaused || sc.Item2 is TorrentStatus.Errored)
                     {
                         _currentSpeeds.Remove(sc.torrentId);
@@ -114,18 +177,22 @@ public partial class MainViewModel : ObservableObject
                             scItem.DownloadSpeed = "↓ 0 B/s";
                             scItem.UploadSpeed = "↑ 0 B/s";
                         }
+
                         UpdateGlobalSpeedStrings();
                     }
+
                     break;
 
                 case EngineEvent.TorrentRemoved removed:
                     _pendingProgress.TryRemove(removed.torrentId, out _);
-                    var toRemove = Torrents.FirstOrDefault(t => t.TorrentId == removed.torrentId);
+                    var toRemove = _allTorrents.FirstOrDefault(t => t.TorrentId == removed.torrentId);
                     if (toRemove != null)
                     {
                         if (SelectedTorrent == toRemove) SelectedTorrent = null;
+                        _allTorrents.Remove(toRemove);
                         Torrents.Remove(toRemove);
                     }
+
                     _currentSpeeds.Remove(removed.torrentId);
                     _speedHistory.RemoveTorrent(removed.torrentId);
                     UpdateGlobalSpeedStrings();
@@ -136,11 +203,24 @@ public partial class MainViewModel : ObservableObject
                     break;
 
                 case EngineEvent.Error err:
-                    var errItem = Torrents.FirstOrDefault(t => t.TorrentId == err.torrentId);
-                    if (errItem != null) errItem.StatusLabel = "Error: " + err.message;
+                    var errItem = _allTorrents.FirstOrDefault(t => t.TorrentId == err.torrentId);
+                    if (errItem != null)
+                    {
+                        errItem.StatusLabel = "Error: " + err.message;
+                        UpdateItemVisibility(errItem);
+                    }
+
                     break;
             }
         });
+    }
+
+    private void UpdateItemVisibility(TorrentItemViewModel item)
+    {
+        var matches = MatchesFilter(item, CurrentFilter);
+        var inView = Torrents.Contains(item);
+        if (matches && !inView) Torrents.Add(item);
+        else if (!matches && inView) Torrents.Remove(item);
     }
 
     private void FlushProgressToUI()
@@ -150,13 +230,15 @@ public partial class MainViewModel : ObservableObject
         {
             foreach (var (_, p) in snapshot)
             {
-                var item = Torrents.FirstOrDefault(t => t.TorrentId == p.TorrentId);
+                var item = _allTorrents.FirstOrDefault(t => t.TorrentId == p.TorrentId);
                 if (item == null)
                 {
                     item = new TorrentItemViewModel();
-                    Torrents.Add(item);
+                    _allTorrents.Add(item);
                 }
+
                 item.Update(p);
+                UpdateItemVisibility(item);
                 _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
             }
 
@@ -164,7 +246,7 @@ public partial class MainViewModel : ObservableObject
 
             _speedHistory.RecordSamples(_currentSpeeds);
             GlobalDownloadHistory = _speedHistory.GlobalDownloadHistory;
-            GlobalUploadHistory   = _speedHistory.GlobalUploadHistory;
+            GlobalUploadHistory = _speedHistory.GlobalUploadHistory;
         });
     }
 
@@ -216,20 +298,21 @@ public partial class MainViewModel : ObservableObject
         if (result == null) return;
 
         foreach (var path in result.TorrentFilePaths)
-        {
             try
             {
                 var bytes = await File.ReadAllBytesAsync(path);
                 var torrentId = await _engine.AddTorrentAsync(bytes, result.DownloadPath);
 
-                if (!Torrents.Any(t => t.TorrentId == torrentId))
+                if (!_allTorrents.Any(t => t.TorrentId == torrentId))
                 {
-                    Torrents.Add(new TorrentItemViewModel
+                    var vm = new TorrentItemViewModel
                     {
                         TorrentId = torrentId,
                         Name = Path.GetFileNameWithoutExtension(path),
                         StatusLabel = "Starting..."
-                    });
+                    };
+                    _allTorrents.Add(vm);
+                    UpdateItemVisibility(vm);
                 }
             }
             catch (Exception ex)
@@ -237,7 +320,6 @@ public partial class MainViewModel : ObservableObject
                 await _dialog.ShowErrorAsync("Error",
                     $"Failed to add '{Path.GetFileName(path)}': {ex.Message}");
             }
-        }
     }
 
     [RelayCommand]
@@ -287,13 +369,6 @@ public partial class MainViewModel : ObservableObject
         if (ok) await _engine.ClearDatabaseAsync();
     }
 
-    [RelayCommand]
-    private async Task OpenDetails()
-    {
-        if (SelectedTorrent == null) return;
-        await _navigation.ShowDetailsAsync(SelectedTorrent);
-    }
-
     public async Task ShutdownAsync()
     {
         _flushTimer?.Stop();
@@ -304,8 +379,17 @@ public partial class MainViewModel : ObservableObject
 
     private sealed class EventObserver(Action<EngineEvent> onNext) : IObserver<EngineEvent>
     {
-        public void OnNext(EngineEvent value) => onNext(value);
-        public void OnError(Exception error) { }
-        public void OnCompleted() { }
+        public void OnNext(EngineEvent value)
+        {
+            onNext(value);
+        }
+
+        public void OnError(Exception error)
+        {
+        }
+
+        public void OnCompleted()
+        {
+        }
     }
 }
