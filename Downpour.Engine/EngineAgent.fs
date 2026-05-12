@@ -384,10 +384,12 @@ let start
 
                             | PauseTorrent(torrentId, reply) ->
                                 state.Torrents |> Map.tryFind torrentId |> Option.iter (fun a -> a.Post Pause)
+                                do! ctx.Repository.UpdateStatusAsync(torrentId, Downpour.Storage.Models.TorrentStatus.Paused) |> Async.AwaitTask
                                 reply.Reply(())
 
                             | ResumeTorrent(torrentId, reply) ->
                                 state.Torrents |> Map.tryFind torrentId |> Option.iter (fun a -> a.Post Resume)
+                                do! ctx.Repository.UpdateStatusAsync(torrentId, Downpour.Storage.Models.TorrentStatus.Downloading) |> Async.AwaitTask
                                 reply.Reply(())
 
                             // inbound TCP
