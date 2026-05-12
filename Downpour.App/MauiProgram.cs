@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using Downpour.App.Services;
 using Downpour.App.ViewModels;
 using Downpour.Engine;
@@ -24,6 +25,7 @@ public static class MauiProgram
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
+            .UseSkiaSharp()
             .UseFluentMauiIcons()
             .ConfigureFonts(fonts =>
             {

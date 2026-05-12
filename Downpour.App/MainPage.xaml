@@ -2,13 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Downpour.App.ViewModels"
+             xmlns:controls="clr-namespace:Downpour.App.Controls"
              x:Class="Downpour.App.MainPage"
              x:DataType="vm:MainViewModel"
              Shell.NavBarIsVisible="False"
              Title="Downpour"
              BackgroundColor="Transparent">
 
-    <Grid RowDefinitions="Auto, *">
+    <Grid RowDefinitions="Auto, Auto, *">
         <Grid.GestureRecognizers>
             <TapGestureRecognizer Tapped="OnBackgroundTapped" />
         </Grid.GestureRecognizers>
@@ -58,6 +59,14 @@
                         Text="Settings"
                         Style="{StaticResource FlatButton}"
                         Command="{Binding OpenSettingsCommand}" />
+
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+
+                <Button x:Name="BtnDetails"
+                        Text="Details"
+                        Style="{StaticResource FlatButton}"
+                        Command="{Binding OpenDetailsCommand}"
+                        IsEnabled="{Binding HasSelection}" />
             </HorizontalStackLayout>
 
             <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="10" VerticalOptions="Center" Margin="0,0,4,0">
@@ -75,9 +84,16 @@
             </HorizontalStackLayout>
         </Grid>
 
+        <!-- Global speed chart -->
+        <controls:SpeedChartView Grid.Row="1"
+                                 HeightRequest="52"
+                                 Margin="8,0,8,4"
+                                 DownloadSamples="{Binding GlobalDownloadHistory}"
+                                 UploadSamples="{Binding GlobalUploadHistory}" />
+
         <!-- Torrent list -->
         <CollectionView x:Name="TorrentList"
-                        Grid.Row="1"
+                        Grid.Row="2"
                         BackgroundColor="Transparent"
                         ItemsSource="{Binding Torrents}"
                         SelectionMode="Single"

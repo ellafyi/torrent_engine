@@ -13,11 +13,14 @@ namespace Downpour.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private const int SpeedHistorySize = 120;
+
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
     private readonly IEngine _engine;
-
     private readonly ConcurrentDictionary<int, TorrentProgress> _pendingProgress = new();
     private readonly SettingsService _settingsService;
+    private readonly Queue<(long down, long up)> _globalSpeedQueue = new();
+    private readonly Dictionary<int, Queue<(long down, long up)>> _torrentSpeedQueues = new();
     private Timer? _flushTimer;
     private IDisposable? _subscription;
 
@@ -25,6 +28,7 @@ public partial class MainViewModel : ObservableObject
     {
         _engine = engine;
         _settingsService = settingsService;
+        AllTimeStats = "↓ 0 B  ↑ 0 B";
         RefreshThrottleDisplay();
     }
 
@@ -43,11 +47,26 @@ public partial class MainViewModel : ObservableObject
     private string _allTimeStats = "↓ 0 B  ↑ 0 B";
     public string AllTimeStats { get => _allTimeStats; private set => SetProperty(ref _allTimeStats, value); }
 
+    private IReadOnlyList<long> _globalDownloadHistory = [];
+    public IReadOnlyList<long> GlobalDownloadHistory { get => _globalDownloadHistory; private set => SetProperty(ref _globalDownloadHistory, value); }
+
+    private IReadOnlyList<long> _globalUploadHistory = [];
+    public IReadOnlyList<long> GlobalUploadHistory { get => _globalUploadHistory; private set => SetProperty(ref _globalUploadHistory, value); }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasThrottleLimits))]
     public partial string ThrottleLimitText { get; set; } = "";
 
     public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
+
+    // Fired on the main thread every second after speed samples are appended.
+    public event Action? TorrentSpeedHistoryUpdated;
+
+    public IReadOnlyList<long> GetTorrentDownloadHistory(int torrentId) =>
+        _torrentSpeedQueues.TryGetValue(torrentId, out var q) ? q.Select(s => s.down).ToList() : [];
+
+    public IReadOnlyList<long> GetTorrentUploadHistory(int torrentId) =>
+        _torrentSpeedQueues.TryGetValue(torrentId, out var q) ? q.Select(s => s.up).ToList() : [];
 
     private void RefreshThrottleDisplay()
     {
@@ -104,8 +123,8 @@ public partial class MainViewModel : ObservableObject
                         if (SelectedTorrent == toRemove) SelectedTorrent = null;
                         Torrents.Remove(toRemove);
                     }
-
                     _currentSpeeds.Remove(removed.torrentId);
+                    _torrentSpeedQueues.Remove(removed.torrentId);
                     UpdateGlobalSpeedStrings();
                     break;
 
@@ -123,8 +142,7 @@ public partial class MainViewModel : ObservableObject
 
     private void FlushProgressToUI()
     {
-        if (_pendingProgress.IsEmpty) return;
-        var snapshot = _pendingProgress.ToArray();
+        var snapshot = _pendingProgress.IsEmpty ? [] : _pendingProgress.ToArray();
         MainThread.BeginInvokeOnMainThread(() =>
         {
             foreach (var (_, p) in snapshot)
@@ -135,13 +153,37 @@ public partial class MainViewModel : ObservableObject
                     item = new TorrentItemViewModel();
                     Torrents.Add(item);
                 }
-
                 item.Update(p);
                 _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
             }
 
-            UpdateGlobalSpeedStrings();
+            if (snapshot.Length > 0) UpdateGlobalSpeedStrings();
+            AppendSpeedSamples();
         });
+    }
+
+    private void AppendSpeedSamples()
+    {
+        var totalDown = _currentSpeeds.Values.Sum(s => s.down);
+        var totalUp   = _currentSpeeds.Values.Sum(s => s.up);
+        EnqueueSample(_globalSpeedQueue, (totalDown, totalUp));
+        GlobalDownloadHistory = _globalSpeedQueue.Select(s => s.down).ToList();
+        GlobalUploadHistory   = _globalSpeedQueue.Select(s => s.up).ToList();
+
+        foreach (var (id, speeds) in _currentSpeeds)
+        {
+            if (!_torrentSpeedQueues.TryGetValue(id, out var q))
+                _torrentSpeedQueues[id] = q = new Queue<(long, long)>();
+            EnqueueSample(q, speeds);
+        }
+
+        TorrentSpeedHistoryUpdated?.Invoke();
+    }
+
+    private static void EnqueueSample(Queue<(long, long)> queue, (long, long) sample)
+    {
+        queue.Enqueue(sample);
+        while (queue.Count > SpeedHistorySize) queue.Dequeue();
     }
 
     private void UpdateGlobalSpeedStrings()
@@ -162,7 +204,7 @@ public partial class MainViewModel : ObservableObject
         };
     }
 
-    private static string FormatBytes(long bytes)
+    internal static string FormatBytes(long bytes)
     {
         return bytes switch
         {
@@ -271,6 +313,16 @@ public partial class MainViewModel : ObservableObject
         if (confirm) await _engine.ClearDatabaseAsync();
     }
 
+    [RelayCommand]
+    private async Task OpenDetails()
+    {
+        if (SelectedTorrent == null) return;
+        var vm = new TorrentDetailsViewModel(SelectedTorrent, this);
+        var page = new TorrentDetailsPage(vm);
+        await Shell.Current.Navigation.PushModalAsync(page, false);
+        await vm.WaitForClosedAsync();
+    }
+
     public async Task ShutdownAsync()
     {
         _flushTimer?.Stop();
@@ -281,17 +333,8 @@ public partial class MainViewModel : ObservableObject
 
     private sealed class EventObserver(Action<EngineEvent> onNext) : IObserver<EngineEvent>
     {
-        public void OnNext(EngineEvent value)
-        {
-            onNext(value);
-        }
-
-        public void OnError(Exception error)
-        {
-        }
-
-        public void OnCompleted()
-        {
-        }
+        public void OnNext(EngineEvent value) => onNext(value);
+        public void OnError(Exception error) { }
+        public void OnCompleted() { }
     }
 }
