@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Downpour.App.ViewModels"
@@ -46,21 +47,24 @@
                         Command="{Binding RemoveAndDeleteCommand}"
                         IsEnabled="{Binding HasSelection}" />
 
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
+                         VerticalOptions="Center" />
 
                 <Button x:Name="BtnClearDb"
                         Text="Clear DB"
                         Style="{StaticResource FlatButton}"
                         Command="{Binding ClearDatabaseCommand}" />
 
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
+                         VerticalOptions="Center" />
 
                 <Button x:Name="BtnSettings"
                         Text="Settings"
                         Style="{StaticResource FlatButton}"
                         Command="{Binding OpenSettingsCommand}" />
 
-                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5" VerticalOptions="Center" />
+                <BoxView WidthRequest="1" HeightRequest="14" Color="Gray" Margin="4,0" Opacity="0.5"
+                         VerticalOptions="Center" />
 
                 <Button x:Name="BtnDetails"
                         Text="Details"
@@ -69,7 +73,8 @@
                         IsEnabled="{Binding HasSelection}" />
             </HorizontalStackLayout>
 
-            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="10" VerticalOptions="Center" Margin="0,0,4,0">
+            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="10" VerticalOptions="Center"
+                                   Margin="0,0,4,0">
                 <Label Text="{Binding ThrottleLimitText}"
                        IsVisible="{Binding HasThrottleLimits}"
                        FontSize="12"
@@ -156,7 +161,7 @@
 
         <!-- Global speed chart — flush to bottom edge -->
         <controls:SpeedChartView Grid.Row="2"
-                                 HeightRequest="60"
+                                 HeightRequest="150"
                                  Margin="0"
                                  DownloadSamples="{Binding GlobalDownloadHistory}"
                                  UploadSamples="{Binding GlobalUploadHistory}" />
