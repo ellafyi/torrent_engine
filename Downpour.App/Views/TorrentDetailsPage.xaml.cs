@@ -23,6 +23,5 @@ public partial class TorrentDetailsPage : ContentPage
     protected override void OnDisappearing()
     {
         _vm.Cancel();
-        _vm.Dispose();
     }
 }

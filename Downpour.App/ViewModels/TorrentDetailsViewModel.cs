@@ -1,12 +1,13 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Downpour.App.Services;
 
 namespace Downpour.App.ViewModels;
 
-public partial class TorrentDetailsViewModel : ObservableObject, IDisposable
+public partial class TorrentDetailsViewModel : ObservableObject
 {
     private readonly int _torrentId;
-    private readonly MainViewModel _main;
+    private readonly ISpeedHistoryService _speedHistory;
     private readonly TaskCompletionSource _closeTcs = new();
 
     public TorrentItemViewModel Item { get; }
@@ -17,36 +18,35 @@ public partial class TorrentDetailsViewModel : ObservableObject, IDisposable
     private IReadOnlyList<long> _uploadHistory = [];
     public IReadOnlyList<long> UploadHistory { get => _uploadHistory; private set => SetProperty(ref _uploadHistory, value); }
 
-    public TorrentDetailsViewModel(TorrentItemViewModel item, MainViewModel main)
+    public TorrentDetailsViewModel(TorrentItemViewModel item, ISpeedHistoryService speedHistory)
     {
         Item = item;
         _torrentId = item.TorrentId;
-        _main = main;
-        _main.TorrentSpeedHistoryUpdated += OnHistoryUpdated;
+        _speedHistory = speedHistory;
+        _speedHistory.HistoryUpdated += OnHistoryUpdated;
         Refresh();
     }
 
     private void OnHistoryUpdated()
     {
-        DownloadHistory = _main.GetTorrentDownloadHistory(_torrentId);
-        UploadHistory   = _main.GetTorrentUploadHistory(_torrentId);
+        DownloadHistory = _speedHistory.GetTorrentDownloadHistory(_torrentId);
+        UploadHistory   = _speedHistory.GetTorrentUploadHistory(_torrentId);
     }
 
     private void Refresh()
     {
-        DownloadHistory = _main.GetTorrentDownloadHistory(_torrentId);
-        UploadHistory   = _main.GetTorrentUploadHistory(_torrentId);
+        DownloadHistory = _speedHistory.GetTorrentDownloadHistory(_torrentId);
+        UploadHistory   = _speedHistory.GetTorrentUploadHistory(_torrentId);
     }
 
     public Task WaitForClosedAsync() => _closeTcs.Task;
 
     [RelayCommand]
-    private void Close() => _closeTcs.TrySetResult();
+    private void Close() => Cancel();
 
-    public void Cancel() => _closeTcs.TrySetResult();
-
-    public void Dispose()
+    public void Cancel()
     {
-        _main.TorrentSpeedHistoryUpdated -= OnHistoryUpdated;
+        _speedHistory.HistoryUpdated -= OnHistoryUpdated;
+        _closeTcs.TrySetResult();
     }
 }

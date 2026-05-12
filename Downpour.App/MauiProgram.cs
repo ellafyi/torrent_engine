@@ -50,6 +50,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<IEngine>(sp =>
             TorrentEngine.createEngine(sp.GetRequiredService<SettingsService>().Load()));
 
+        builder.Services.AddSingleton<IDialogService, DialogService>();
+        builder.Services.AddSingleton<IFilePickerService, FilePickerService>();
+        builder.Services.AddSingleton<ISpeedHistoryService, SpeedHistoryService>();
+        builder.Services.AddSingleton<INavigationService, NavigationService>();
+
         builder.Services.AddSingleton<MainViewModel>();
 
 #if DEBUG

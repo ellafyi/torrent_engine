@@ -30,7 +30,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Startup Error", $"Engine failed to start: {ex.Message}", "OK");
+            await DisplayAlertAsync("Startup Error", $"Engine failed to start: {ex.Message}", "OK");
         }
     }
 

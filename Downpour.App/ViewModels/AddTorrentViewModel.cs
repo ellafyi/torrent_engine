@@ -1,12 +1,19 @@
-using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Downpour.App.Models;
+using Downpour.App.Services;
 
 namespace Downpour.App.ViewModels;
 
 public partial class AddTorrentViewModel : ObservableObject
 {
-    private TaskCompletionSource<(string TorrentFilePath, string DownloadPath)?> _tcs = new();
+    private readonly IFilePickerService _filePicker;
+    private TaskCompletionSource<AddTorrentParameters?> _tcs = new();
+
+    public AddTorrentViewModel(IFilePickerService filePicker)
+    {
+        _filePicker = filePicker;
+    }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
@@ -20,39 +27,27 @@ public partial class AddTorrentViewModel : ObservableObject
     {
         TorrentFilePath = null;
         DownloadPath = null;
-        _tcs = new TaskCompletionSource<(string, string)?>();
+        _tcs = new TaskCompletionSource<AddTorrentParameters?>();
     }
 
-    public Task<(string TorrentFilePath, string DownloadPath)?> WaitForResultAsync() => _tcs.Task;
+    public Task<AddTorrentParameters?> WaitForResultAsync() => _tcs.Task;
 
     public void Cancel() => _tcs.TrySetResult(null);
 
     [RelayCommand]
     private async Task BrowseTorrentFile()
     {
-        var result = await FilePicker.PickAsync(new PickOptions
-        {
-            PickerTitle = "Select .torrent file",
-            FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
-            {
-                { DevicePlatform.WinUI, [".torrent"] }
-            })
-        });
-
-        if (result != null)
-            TorrentFilePath = result.FullPath;
+        TorrentFilePath = await _filePicker.PickTorrentFileAsync();
     }
 
     [RelayCommand]
     private async Task BrowseDownloadFolder()
     {
-        var result = await FolderPicker.Default.PickAsync(CancellationToken.None);
-        if (result.IsSuccessful)
-            DownloadPath = result.Folder.Path;
+        DownloadPath = await _filePicker.PickFolderAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanConfirm))]
-    private void Confirm() => _tcs.TrySetResult((TorrentFilePath!, DownloadPath!));
+    private void Confirm() => _tcs.TrySetResult(new AddTorrentParameters(TorrentFilePath!, DownloadPath!));
 
     private bool CanConfirm() =>
         !string.IsNullOrEmpty(TorrentFilePath) && !string.IsNullOrEmpty(DownloadPath);
