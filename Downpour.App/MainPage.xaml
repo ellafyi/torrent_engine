@@ -19,7 +19,7 @@
                 BackgroundColor="{AppThemeBinding Light=#05000000, Dark=#05FFFFFF}"
                 StrokeThickness="0"
                 Margin="0,0,1,0">
-            <VerticalStackLayout Spacing="4" Padding="16,24">
+            <VerticalStackLayout Spacing="4" Padding="24">
                 <Label Text="Filters" FontSize="14" FontAttributes="Bold" Opacity="0.5" Margin="0,0,0,12"/>
                 
                 <Button Text="All" Command="{Binding SetFilterCommand}" CommandParameter="All" Style="{StaticResource FlatButton}" HorizontalOptions="Start"/>
@@ -34,7 +34,7 @@
         <Grid Grid.Column="1" RowDefinitions="Auto, Auto, *, Auto">
             
             <!-- Toolbar -->
-            <HorizontalStackLayout Grid.Row="0" Spacing="4" VerticalOptions="Center" Margin="16,16,16,12">
+            <HorizontalStackLayout Grid.Row="0" Spacing="8" VerticalOptions="Center" Margin="16">
                 <Button x:Name="BtnAdd" Text="➕ Add" Style="{StaticResource FlatButton}" Command="{Binding AddTorrentCommand}" />
                 <Button x:Name="BtnPause" Text="⏸ Pause" Style="{StaticResource FlatButton}" Command="{Binding PauseTorrentCommand}" IsEnabled="{Binding SelectedTorrent.CanPause, FallbackValue=False}" />
                 <Button x:Name="BtnResume" Text="▶ Resume" Style="{StaticResource FlatButton}" Command="{Binding ResumeTorrentCommand}" IsEnabled="{Binding SelectedTorrent.CanResume, FallbackValue=False}" />
@@ -51,7 +51,7 @@
             </HorizontalStackLayout>
 
             <!-- Dashboard Header -->
-            <Border Grid.Row="1" Margin="16,0,16,12" Padding="16,12" BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#202020}" StrokeThickness="0">
+            <Border Grid.Row="1" Margin="16,0,16,16" Padding="16" BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#202020}" StrokeThickness="0">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="8" />
                 </Border.StrokeShape>
@@ -75,6 +75,7 @@
             <!-- Torrent list -->
             <CollectionView x:Name="TorrentList"
                             Grid.Row="2"
+                            Margin="16,0"
                             BackgroundColor="Transparent"
                             ItemsSource="{Binding Torrents}"
                             SelectionMode="Single"
@@ -83,8 +84,8 @@
 
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:TorrentItemViewModel">
-                        <Border Margin="16,3"
-                                Padding="12,8"
+                        <Border Margin="0,4"
+                                Padding="16,12"
                                 BackgroundColor="{Binding CardBackgroundColor}"
                                 Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
                                 StrokeThickness="1">
@@ -92,7 +93,7 @@
                                 <RoundRectangle CornerRadius="8" />
                             </Border.StrokeShape>
                             <Grid ColumnDefinitions="Auto, Auto, *, 2*, Auto, Auto"
-                                  ColumnSpacing="10"
+                                  ColumnSpacing="12"
                                   VerticalOptions="Center">
                                 <Label Grid.Column="0"
                                        Text="{Binding StatusLabel}"
@@ -157,17 +158,17 @@
                 BackgroundColor="{AppThemeBinding Light=#F9F9F9, Dark=#1E1E1E}"
                 StrokeThickness="0"
                 Margin="1,0,0,0">
-            <VerticalStackLayout Spacing="14" Padding="20,24" BindingContext="{Binding SelectedTorrent}" x:DataType="vm:TorrentItemViewModel">
+            <VerticalStackLayout Spacing="16" Padding="24" BindingContext="{Binding SelectedTorrent}" x:DataType="vm:TorrentItemViewModel">
                 <Label Text="Details" FontSize="14" FontAttributes="Bold" Opacity="0.5" Margin="0,0,0,4"/>
                 
                 <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="WordWrap" />
                 
-                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+                <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
                     <Label Grid.Column="0" Text="{Binding StatusLabel}" TextColor="{Binding StatusTextColor}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" />
                     <Label Grid.Column="2" Text="{Binding PeerCountText}" FontSize="12" Opacity="0.7" VerticalOptions="Center" />
                 </Grid>
 
-                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+                <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
                     <ProgressBar Grid.Column="0" Progress="{Binding ProgressFraction}" HeightRequest="6" VerticalOptions="Center" />
                     <Label Grid.Column="1" Text="{Binding ProgressPercent}" FontSize="12" MinimumWidthRequest="38" HorizontalTextAlignment="End" VerticalOptions="Center" />
                 </Grid>

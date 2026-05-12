@@ -16,10 +16,10 @@
             Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
             StrokeThickness="1">
         <Border.StrokeShape>
-            <RoundRectangle CornerRadius="12" />
+            <RoundRectangle CornerRadius="8" />
         </Border.StrokeShape>
 
-        <VerticalStackLayout Spacing="14">
+        <VerticalStackLayout Spacing="16">
 
             <!-- Title -->
             <Label Text="{Binding Item.Name}"
@@ -28,7 +28,7 @@
                    LineBreakMode="TailTruncation" />
 
             <!-- Status + peer count row -->
-            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
                 <Label Grid.Column="0"
                        Text="{Binding Item.StatusLabel}"
                        TextColor="{Binding Item.StatusTextColor}"
@@ -43,7 +43,7 @@
             </Grid>
 
             <!-- Progress bar + percent -->
-            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="8">
+            <Grid ColumnDefinitions="*, Auto" ColumnSpacing="12">
                 <ProgressBar Grid.Column="0"
                              Progress="{Binding Item.ProgressFraction}"
                              HeightRequest="6"

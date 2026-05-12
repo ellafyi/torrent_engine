@@ -10,7 +10,7 @@
 
     <Grid VerticalOptions="Center" HorizontalOptions="Center" Padding="40">
         <Border WidthRequest="420"
-                Padding="28"
+                Padding="24"
                 HorizontalOptions="Center"
                 BackgroundColor="{AppThemeBinding Light=#F3F3F3, Dark=#2D2D2D}"
                 Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
@@ -60,7 +60,7 @@
                 <!-- Action buttons -->
                 <HorizontalStackLayout HorizontalOptions="End"
                                        Spacing="8"
-                                       Margin="0,8,0,0">
+                                       Margin="0,16,0,0">
                     <Button Text="Cancel"
                             Command="{Binding CancelDialogCommand}"
                             WidthRequest="90" />

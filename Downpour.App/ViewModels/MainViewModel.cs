@@ -44,7 +44,8 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<TorrentItemViewModel> Torrents { get; } = [];
 
     private string _currentFilter = "All";
-    public string CurrentFilter
+
+    private string CurrentFilter
     {
         get => _currentFilter;
         set
@@ -268,7 +269,7 @@ public partial class MainViewModel : ObservableObject
         };
     }
 
-    internal static string FormatBytes(long bytes)
+    private static string FormatBytes(long bytes)
     {
         return bytes switch
         {
@@ -303,17 +304,15 @@ public partial class MainViewModel : ObservableObject
                 var bytes = await File.ReadAllBytesAsync(path);
                 var torrentId = await _engine.AddTorrentAsync(bytes, result.DownloadPath);
 
-                if (!_allTorrents.Any(t => t.TorrentId == torrentId))
+                if (_allTorrents.Any(t => t.TorrentId == torrentId)) continue;
+                var vm = new TorrentItemViewModel
                 {
-                    var vm = new TorrentItemViewModel
-                    {
-                        TorrentId = torrentId,
-                        Name = Path.GetFileNameWithoutExtension(path),
-                        StatusLabel = "Starting..."
-                    };
-                    _allTorrents.Add(vm);
-                    UpdateItemVisibility(vm);
-                }
+                    TorrentId = torrentId,
+                    Name = Path.GetFileNameWithoutExtension(path),
+                    StatusLabel = "Starting..."
+                };
+                _allTorrents.Add(vm);
+                UpdateItemVisibility(vm);
             }
             catch (Exception ex)
             {

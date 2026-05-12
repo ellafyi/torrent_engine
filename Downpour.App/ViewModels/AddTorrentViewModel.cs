@@ -22,12 +22,10 @@ public partial class AddTorrentViewModel : ObservableObject
         get => _torrentFilePaths;
         set
         {
-            if (SetProperty(ref _torrentFilePaths, value))
-            {
-                ConfirmCommand.NotifyCanExecuteChanged();
-                OnPropertyChanged(nameof(TorrentFileNames));
-                OnPropertyChanged(nameof(ConfirmButtonText));
-            }
+            if (!SetProperty(ref _torrentFilePaths, value)) return;
+            ConfirmCommand.NotifyCanExecuteChanged();
+            OnPropertyChanged(nameof(TorrentFileNames));
+            OnPropertyChanged(nameof(ConfirmButtonText));
         }
     }
 

@@ -32,7 +32,18 @@ public class SpeedChartView : SKCanvasView
         float w = e.Info.Width;
         float h = e.Info.Height;
 
-        canvas.Clear(new SKColor(0, 0, 0, 25));
+        // Clear the canvas to fully transparent before painting the gradient to prevent ghosting
+        canvas.Clear(SKColors.Transparent);
+
+        using (var bgShader = SKShader.CreateLinearGradient(
+                   new SKPoint(0, 0),
+                   new SKPoint(0, h),
+                   new[] { new SKColor(0, 0, 0, 0), new SKColor(0, 0, 0, 25) },
+                   SKShaderTileMode.Clamp))
+        using (var bgPaint = new SKPaint { Style = SKPaintStyle.Fill, Shader = bgShader })
+        {
+            canvas.DrawRect(0, 0, w, h, bgPaint);
+        }
 
         var dl = DownloadSamples;
         var ul = UploadSamples;
