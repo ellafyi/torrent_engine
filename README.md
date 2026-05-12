@@ -1,42 +1,67 @@
 # Downpour
 
-A BitTorrent client written in F# and C# targeting .NET 10, built as a MAUI desktop application with a layered library architecture.
+A BitTorrent client written in F# and C# targeting .NET 10, built as a MAUI desktop application.
+
+# Build Instructions
+
+The project targets Windows. All development was done in Rider 2025.3.2. No other platforms were tested. Visual Studio was not tested. The app can either be built/rand with the command line via `dotnet` or throught the IDE.
 
 ## App structure
 
 ```mermaid
 graph TD
-    Downpour["Downpour\nMAUI desktop app"]
-    Downpour.Console["Downpour.Console\nTerminal UI for testing"]
-    Downpour.Engine["Downpour.Engine\nCore torrent orchestration"]
-    Downpour.Tracker["Downpour.Tracker\nHTTP/UDP tracker communication"]
-    Downpour.Protocol["Downpour.Protocol\nPeer wire protocol codec"]
-    Downpour.Storage["Downpour.Storage\nSQLite persistence via EF Core"]
-    Downpour.Torrent["Downpour.Torrent\n.torrent metainfo parsing"]
-    Downpour.Bencode["Downpour.Bencode\nBencode encoder/decoder"]
+    App["Downpour.App\nMAUI desktop app"]
+    Console["Downpour.Console\nTerminal UI for testing"]
+    Engine["Downpour.Engine\nCore torrent orchestration"]
+    Tracker["Downpour.Tracker\nHTTP/UDP tracker communication"]
+    Protocol["Downpour.Protocol\nPeer wire protocol codec"]
+    Storage["Downpour.Storage\nSQLite persistence via EF Core"]
+    Torrent["Downpour.Torrent\n.torrent metainfo parsing"]
+    Bencode["Downpour.Bencode\nBencode encoder/decoder"]
 
-    Downpour --> Downpour.Engine
-    Downpour.Console --> Downpour.Engine
-    Downpour.Engine --> Downpour.Tracker
-    Downpour.Engine --> Downpour.Protocol
-    Downpour.Engine --> Downpour.Storage
-    Downpour.Engine --> Downpour.Torrent
-    Downpour.Torrent --> Downpour.Bencode
+    App --> Engine
+    Console --> Engine
+    Engine --> Tracker
+    Engine --> Protocol
+    Engine --> Storage
+    Engine --> Torrent
+    Torrent --> Bencode
 ```
+
+## Features
+
+- Add single or multiple `.torrent` files at once with folder selection
+- Live torrent list with name, status badge, progress bar, download/upload speed, peer count
+- Pause, resume, remove, and delete (with files) individual torrents
+- Per-torrent details page with a mini live speed chart
+- Global speed history chart at the bottom 
+- Settings: listen port, seeding toggle, download/upload throttle limits
+- All-time downloaded/uploaded totals in the toolbar
+- SQLite persistence for torrents, piece bitfields, and transfer totals survive restarts
 
 ## Components
 
-### Downpour (C# / MAUI) (WIP)
+### Downpour.App (C# / MAUI)
 
-MVVM desktop UI using CommunityToolkit.Mvvm. Shows a live torrent list with name, status, size, progress, speeds, and peer count. The custom title bar holds Add/Pause/Resume/Remove actions; a bottom toolbar filters by status. `SettingsService` persists listen port and speed limits as JSON.
+MAUI desktop app for Windows targeting .NET 10 with a Mica backdrop. Uses CommunityToolkit.Mvvm, ViewModels hold only observable state and commands, rest is handled by injected services:
+
+| Service | Responsibility |
+|---|---|
+| `INavigationService` | Constructs pages and pushes/pops modal dialogs |
+| `IDialogService` | Alert and confirmation dialogs via `Shell.Current` |
+| `IFilePickerService` | Platform file/folder picker APIs |
+| `ISpeedHistoryService` | In-memory ring buffers (120 samples ≈ 2 min) for global and per-torrent speed history |
+| `SettingsService` | Persists listen port and throttle limits as JSON |
+
+The main view shows a `CollectionView` of `TorrentItemViewModel`s updated once per second from a background timer. A `SpeedChartView` renders an area chart with gradient fill.
 
 ### Downpour.Console (C#)
 
-Terminal.Gui TUI used for manual engine testing. Supports adding, pausing, resuming, and removing torrents via keyboard shortcuts and shows live progress in a scrollable list.
-
+Simple lightweight app for testing functionality, replaced by `Downpour.App
+`
 ### Downpour.Engine (F#)
 
-Orchestrates everything. `Engine` owns one `EngineAgent` MailboxProcessor that serializes all top-level commands (add, remove, pause, resume, settings). Each active torrent gets its own `TorrentAgent` MailboxProcessor that manages the download state machine: piece verification on start, tracker announcements, peer slot management, block pipelining, SHA-1 verification, and seeding. `PeerAgent` handles a single TCP peer connection. `PieceStore` handles on-disk block reads, writes, and bitfield management. Progress and status changes are broadcast via `IObservable<EngineEvent>`.
+Orchestrates everything. `Engine` owns one `EngineAgent` MailboxProcessor that serializes all top-level commands (add, remove, pause, resume, settings, incoming TCP). Each active torrent gets its own `TorrentAgent` MailboxProcessor that manages the download state machine: piece verification on start, HTTP/UDP tracker announcements, peer slot management, block pipelining, SHA-1 piece verification, and seeding after completion. `PeerAgent` handles a single TCP peer connection. `PieceStore` handles on-disk block reads, writes, and bitfield management. Progress and status changes are broadcast via `IObservable<EngineEvent>`. Download and upload speeds can be throttled via `EngineSettings`.
 
 ### Downpour.Tracker (F#)
 
@@ -44,7 +69,7 @@ Announces to HTTP trackers (BEP-3) and UDP trackers (BEP-15). Returns peer lists
 
 ### Downpour.Protocol (F#)
 
-Serializes and deserializes the BitTorrent peer wire protocol. Covers the 68-byte handshake and all standard peer messages: `KeepAlive`, `Choke`, `Unchoke`, `Interested`, `NotInterested`, `Have`, `Bitfield`, `Request`, `Piece`, and `Cancel`.
+Serializes and deserializes the BitTorrent protocol. Covers the 68-byte handshake and all standard peer messages: `KeepAlive`, `Choke`, `Unchoke`, `Interested`, `NotInterested`, `Have`, `Bitfield`, `Request`, `Piece`, and `Cancel`.
 
 ### Downpour.Storage (C#)
 
