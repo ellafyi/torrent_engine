@@ -1,41 +1,25 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Downpour.App.Services;
 using Downpour.App.Views;
 using Downpour.Engine;
 using Downpour.Engine.Types;
+using Timer = System.Timers.Timer;
 
 namespace Downpour.App.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly IEngine _engine;
-    private readonly SettingsService _settingsService;
-    private IDisposable? _subscription;
-
-    [ObservableProperty]
-    public partial ObservableCollection<TorrentItemViewModel> Torrents { get; set; } = [];
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSelection))]
-    public partial TorrentItemViewModel? SelectedTorrent { get; set; }
-
-    public bool HasSelection => SelectedTorrent != null;
-
-    [ObservableProperty]
-    public partial string GlobalDownloadSpeed { get; set; } = "↓ 0 B/s";
-
-    [ObservableProperty]
-    public partial string GlobalUploadSpeed { get; set; } = "↑ 0 B/s";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasThrottleLimits))]
-    public partial string ThrottleLimitText { get; set; } = "";
-
-    public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
-
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
+    private readonly IEngine _engine;
+
+    private readonly ConcurrentDictionary<int, TorrentProgress> _pendingProgress = new();
+    private readonly SettingsService _settingsService;
+    private Timer? _flushTimer;
+    private IDisposable? _subscription;
 
     public MainViewModel(IEngine engine, SettingsService settingsService)
     {
@@ -44,12 +28,33 @@ public partial class MainViewModel : ObservableObject
         RefreshThrottleDisplay();
     }
 
+    [ObservableProperty] public partial ObservableCollection<TorrentItemViewModel> Torrents { get; set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
+    public partial TorrentItemViewModel? SelectedTorrent { get; set; }
+
+    public bool HasSelection => SelectedTorrent != null;
+
+    [ObservableProperty] public partial string GlobalDownloadSpeed { get; set; } = "↓ 0 B/s";
+
+    [ObservableProperty] public partial string GlobalUploadSpeed { get; set; } = "↑ 0 B/s";
+
+    private string _allTimeStats = "↓ 0 B  ↑ 0 B";
+    public string AllTimeStats { get => _allTimeStats; private set => SetProperty(ref _allTimeStats, value); }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasThrottleLimits))]
+    public partial string ThrottleLimitText { get; set; } = "";
+
+    public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
+
     private void RefreshThrottleDisplay()
     {
         var s = _settingsService.Load();
         var parts = new List<string>();
         if (s.MaxDownloadSpeedKbps > 0) parts.Add($"↓ {s.MaxDownloadSpeedKbps} KB/s");
-        if (s.MaxUploadSpeedMbps   > 0) parts.Add($"↑ {s.MaxUploadSpeedMbps} MB/s");
+        if (s.MaxUploadSpeedMbps > 0) parts.Add($"↑ {s.MaxUploadSpeedMbps} MB/s");
         ThrottleLimitText = string.Join("  ", parts);
     }
 
@@ -57,6 +62,11 @@ public partial class MainViewModel : ObservableObject
     {
         _subscription = _engine.Events.Subscribe(new EventObserver(OnEngineEvent));
         await _engine.StartAsync();
+
+        _flushTimer = new Timer(1000);
+        _flushTimer.Elapsed += (_, _) => FlushProgressToUI();
+        _flushTimer.AutoReset = true;
+        _flushTimer.Start();
 
         var initial = _engine.GetTorrents();
         MainThread.BeginInvokeOnMainThread(() =>
@@ -77,35 +87,30 @@ public partial class MainViewModel : ObservableObject
             switch (ev)
             {
                 case EngineEvent.Progress { Item: var p }:
-                    var item = Torrents.FirstOrDefault(t => t.TorrentId == p.TorrentId);
-                    if (item == null)
-                    {
-                        item = new TorrentItemViewModel();
-                        Torrents.Add(item);
-                    }
-                    item.Update(p);
-                    
-                    _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
-                    UpdateGlobalSpeedStrings();
+                    _pendingProgress[p.TorrentId] = p;
                     break;
 
                 case EngineEvent.StatusChanged sc:
+                    _pendingProgress.TryRemove(sc.torrentId, out _);
                     var scItem = Torrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
-                    if (scItem != null)
-                    {
-                        scItem.UpdateStatus(sc.Item2);
-                    }
+                    if (scItem != null) scItem.UpdateStatus(sc.Item2);
                     break;
 
                 case EngineEvent.TorrentRemoved removed:
+                    _pendingProgress.TryRemove(removed.torrentId, out _);
                     var toRemove = Torrents.FirstOrDefault(t => t.TorrentId == removed.torrentId);
                     if (toRemove != null)
                     {
                         if (SelectedTorrent == toRemove) SelectedTorrent = null;
                         Torrents.Remove(toRemove);
                     }
+
                     _currentSpeeds.Remove(removed.torrentId);
                     UpdateGlobalSpeedStrings();
+                    break;
+
+                case EngineEvent.GlobalStatsUpdate gs:
+                    AllTimeStats = $"↓ {FormatBytes(gs.downloaded)}  ↑ {FormatBytes(gs.uploaded)}";
                     break;
 
                 case EngineEvent.Error err:
@@ -116,20 +121,57 @@ public partial class MainViewModel : ObservableObject
         });
     }
 
+    private void FlushProgressToUI()
+    {
+        if (_pendingProgress.IsEmpty) return;
+        var snapshot = _pendingProgress.ToArray();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            foreach (var (_, p) in snapshot)
+            {
+                var item = Torrents.FirstOrDefault(t => t.TorrentId == p.TorrentId);
+                if (item == null)
+                {
+                    item = new TorrentItemViewModel();
+                    Torrents.Add(item);
+                }
+
+                item.Update(p);
+                _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
+            }
+
+            UpdateGlobalSpeedStrings();
+        });
+    }
+
     private void UpdateGlobalSpeedStrings()
     {
-        long totalDown = _currentSpeeds.Values.Sum(s => s.down);
-        long totalUp = _currentSpeeds.Values.Sum(s => s.up);
+        var totalDown = _currentSpeeds.Values.Sum(s => s.down);
+        var totalUp = _currentSpeeds.Values.Sum(s => s.up);
         GlobalDownloadSpeed = $"↓ {FormatSpeed(totalDown)}";
         GlobalUploadSpeed = $"↑ {FormatSpeed(totalUp)}";
     }
 
-    private static string FormatSpeed(long bps) => bps switch
+    private static string FormatSpeed(long bps)
     {
-        >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
-        >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
-        _ => $"{bps} B/s"
-    };
+        return bps switch
+        {
+            >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
+            >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
+            _ => $"{bps} B/s"
+        };
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        return bytes switch
+        {
+            >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F2} GB",
+            >= 1_048_576 => $"{bytes / 1_048_576.0:F1} MB",
+            >= 1_024 => $"{bytes / 1_024.0:F1} KB",
+            _ => $"{bytes} B"
+        };
+    }
 
     partial void OnSelectedTorrentChanged(TorrentItemViewModel? oldValue, TorrentItemViewModel? newValue)
     {
@@ -137,7 +179,7 @@ public partial class MainViewModel : ObservableObject
         if (newValue != null) newValue.PropertyChanged += OnSelectedItemPropertyChanged;
     }
 
-    private void OnSelectedItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnSelectedItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(TorrentItemViewModel.CanPause) or nameof(TorrentItemViewModel.CanResume))
             OnPropertyChanged(nameof(SelectedTorrent));
@@ -221,27 +263,35 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ClearDatabase()
     {
-        bool confirm = await Shell.Current.DisplayAlertAsync(
+        var confirm = await Shell.Current.DisplayAlertAsync(
             "Clear Database",
             "Are you sure you want to delete all torrents from the database? This action cannot be undone.",
             "Yes", "No");
 
-        if (confirm)
-        {
-            await _engine.ClearDatabaseAsync();
-        }
+        if (confirm) await _engine.ClearDatabaseAsync();
     }
 
     public async Task ShutdownAsync()
     {
+        _flushTimer?.Stop();
+        _flushTimer?.Dispose();
         _subscription?.Dispose();
         await _engine.StopAsync();
     }
 
     private sealed class EventObserver(Action<EngineEvent> onNext) : IObserver<EngineEvent>
     {
-        public void OnNext(EngineEvent value) => onNext(value);
-        public void OnError(Exception error) { }
-        public void OnCompleted() { }
+        public void OnNext(EngineEvent value)
+        {
+            onNext(value);
+        }
+
+        public void OnError(Exception error)
+        {
+        }
+
+        public void OnCompleted()
+        {
+        }
     }
 }

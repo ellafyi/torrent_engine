@@ -20,16 +20,44 @@ public class TorrentRepository(DownpourDbContext context)
         finally { _lock.Release(); }
     }
 
-    public async Task IncrementTransferStatsAsync(int torrentId, long uploaded, long downloaded)
+    public async Task<(long TotalDownloaded, long TotalUploaded)> IncrementTransferStatsAsync(
+        int torrentId, long uploaded, long downloaded)
     {
         await _lock.WaitAsync();
         try
         {
             var torrent = await context.Torrents.FindAsync(torrentId);
-            if (torrent == null) return;
-            torrent.UploadedBytes += uploaded;
-            torrent.DownloadedBytes += downloaded;
+            if (torrent != null)
+            {
+                torrent.UploadedBytes += uploaded;
+                torrent.DownloadedBytes += downloaded;
+            }
+
+            var gs = await context.GlobalStats.FindAsync(1);
+            if (gs == null)
+            {
+                gs = new GlobalStats { Id = 1, TotalDownloaded = downloaded, TotalUploaded = uploaded };
+                context.GlobalStats.Add(gs);
+            }
+            else
+            {
+                gs.TotalDownloaded += downloaded;
+                gs.TotalUploaded += uploaded;
+            }
+
             await context.SaveChangesAsync();
+            return (gs.TotalDownloaded, gs.TotalUploaded);
+        }
+        finally { _lock.Release(); }
+    }
+
+    public async Task<(long TotalDownloaded, long TotalUploaded)> GetGlobalStatsAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            var gs = await context.GlobalStats.FindAsync(1);
+            return gs == null ? (0L, 0L) : (gs.TotalDownloaded, gs.TotalUploaded);
         }
         finally { _lock.Release(); }
     }

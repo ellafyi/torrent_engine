@@ -11,7 +11,7 @@
           HeightRequest="48">
 
     <TitleBar.TrailingContent>
-        <HorizontalStackLayout Spacing="16" VerticalOptions="Center" Margin="0,0,16,0">
+        <HorizontalStackLayout Spacing="12" VerticalOptions="Center" Margin="0,0,12,0">
             <Label Text="{Binding GlobalDownloadSpeed}"
                    FontSize="12"
                    FontAttributes="Bold"

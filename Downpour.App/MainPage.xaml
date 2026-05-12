@@ -9,6 +9,9 @@
              BackgroundColor="Transparent">
 
     <Grid RowDefinitions="Auto, *">
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnBackgroundTapped" />
+        </Grid.GestureRecognizers>
 
         <!-- Toolbar -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto, *" VerticalOptions="Center" Margin="8,8,8,8">
@@ -57,22 +60,29 @@
                         Command="{Binding OpenSettingsCommand}" />
             </HorizontalStackLayout>
 
-            <Label Grid.Column="1"
-                   Text="{Binding ThrottleLimitText}"
-                   IsVisible="{Binding HasThrottleLimits}"
-                   FontSize="12"
-                   Opacity="0.6"
-                   HorizontalOptions="End"
-                   VerticalOptions="Center"
-                   Margin="0,0,4,0" />
+            <HorizontalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="10" VerticalOptions="Center" Margin="0,0,4,0">
+                <Label Text="{Binding ThrottleLimitText}"
+                       IsVisible="{Binding HasThrottleLimits}"
+                       FontSize="12"
+                       Opacity="0.6"
+                       VerticalOptions="Center" />
+                <BoxView IsVisible="{Binding HasThrottleLimits}"
+                         WidthRequest="1" HeightRequest="12" Color="Gray" Opacity="0.5" VerticalOptions="Center" />
+                <Label Text="{Binding AllTimeStats}"
+                       FontSize="11"
+                       Opacity="0.6"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
         </Grid>
 
         <!-- Torrent list -->
-        <CollectionView Grid.Row="1"
+        <CollectionView x:Name="TorrentList"
+                        Grid.Row="1"
                         BackgroundColor="Transparent"
                         ItemsSource="{Binding Torrents}"
                         SelectionMode="Single"
-                        SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}">
+                        SelectedItem="{Binding SelectedTorrent, Mode=TwoWay}"
+                        SelectionChanged="OnTorrentSelectionChanged">
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:TorrentItemViewModel">

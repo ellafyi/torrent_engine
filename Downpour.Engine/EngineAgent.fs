@@ -365,6 +365,9 @@ let start
                     state.Listener <- Some l
                     state.ListenerCts <- Some cts
 
+                    let! struct (gsDl, gsUl) = ctx.Repository.GetGlobalStatsAsync() |> Async.AwaitTask
+                    ctx.Notify(EngineEvent.GlobalStatsUpdate(gsDl, gsUl))
+
                     let rec loop () =
                         async {
                             let! msg = inbox.Receive()

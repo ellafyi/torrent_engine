@@ -4,12 +4,17 @@
              xmlns:vm="clr-namespace:Downpour.App.ViewModels"
              x:Class="Downpour.App.Views.AddTorrentPage"
              x:DataType="vm:AddTorrentViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#80000000"
              Title="Add Torrent">
 
     <Grid VerticalOptions="Center" HorizontalOptions="Center" Padding="40">
         <Border WidthRequest="500"
                 Padding="28"
                 HorizontalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light=#F3F3F3, Dark=#2D2D2D}"
+                Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
+                StrokeThickness="1"
                 StrokeShape="RoundRectangle 8">
 
             <VerticalStackLayout Spacing="16">

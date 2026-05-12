@@ -33,6 +33,8 @@ type private AgentState =
       mutable DownloadedThisTick: int64
       mutable RequestedThisTick: int64
       mutable UploadedThisTick: int64
+      mutable SessionDownloaded: int64
+      mutable SessionUploaded: int64
       mutable TotalDownloaded: int64
       mutable TotalUploaded: int64
       mutable LastDownloadSpeedBps: int64
@@ -297,6 +299,7 @@ let private handleBlockReceived
                 ps.Blocks[blockIdx] <- Received
                 peer.Pending <- max 0 (peer.Pending - 1)
                 state.DownloadedThisTick <- state.DownloadedThisTick + int64 data.Length
+                state.SessionDownloaded  <- state.SessionDownloaded  + int64 data.Length
                 dbg ctx.TorrentId $"Block piece=%d{pieceIdx} offset=%d{offset} len=%d{data.Length}"
 
                 if ps.Blocks |> Array.forall (fun b -> b = Received) then
@@ -323,7 +326,7 @@ let private handleBlockReceived
 
 // Updates per-second speed counters, emits a Progress event,
 // and resets any timed-out in-flight blocks.
-let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
+let private handleProgressTick (ctx: TorrentContext) (state: AgentState) (inbox: MailboxProcessor<TorrentCommand>) =
     state.TickCount <- state.TickCount + 1
     state.LastDownloadSpeedBps <- state.DownloadedThisTick
     state.LastUploadSpeedBps <- state.UploadedThisTick
@@ -332,6 +335,9 @@ let private handleProgressTick (ctx: TorrentContext) (state: AgentState) =
     state.UploadedThisTick <- 0L
 
     ctx.Notify(EngineEvent.Progress(makeProgress ctx state))
+
+    if state.TickCount % 30 = 0 then
+        inbox.Post PersistStats
 
     // Block timeout is 30s; checking every 10s is sufficient and avoids scanning all blocks per-second
     if state.TickCount % 10 = 0 then
@@ -374,6 +380,8 @@ let create
           DownloadedThisTick = 0L
           RequestedThisTick = 0L
           UploadedThisTick = 0L
+          SessionDownloaded = 0L
+          SessionUploaded = 0L
           TotalDownloaded =
             [ 0 .. meta.Info.Pieces.Length - 1 ]
             |> List.filter (fun i -> PieceStore.getBit initialBitfield i)
@@ -634,7 +642,8 @@ let create
                                         }
                                     )
 
-                                    state.UploadedThisTick <- state.UploadedThisTick + int64 len
+                                    state.UploadedThisTick  <- state.UploadedThisTick  + int64 len
+                                    state.SessionUploaded   <- state.SessionUploaded   + int64 len
 
                     | FromPeer(peerId, Disconnected _) ->
                         let id = toHex peerId
@@ -682,7 +691,18 @@ let create
 
                     | GetProgress reply -> reply.Reply(makeProgress ctx state)
 
-                    | ProgressTick -> handleProgressTick ctx state
+                    | ProgressTick -> handleProgressTick ctx state inbox
+
+                    | PersistStats ->
+                        if state.SessionDownloaded > 0L || state.SessionUploaded > 0L then
+                            let dl = state.SessionDownloaded
+                            let ul = state.SessionUploaded
+                            state.SessionDownloaded <- 0L
+                            state.SessionUploaded   <- 0L
+                            let! struct (totalDl, totalUl) =
+                                ctx.Repository.IncrementTransferStatsAsync(ctx.TorrentId, ul, dl)
+                                |> Async.AwaitTask
+                            ctx.Notify(EngineEvent.GlobalStatsUpdate(totalDl, totalUl))
 
                     return! loop ()
                 }

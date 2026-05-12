@@ -34,6 +34,7 @@ type TorrentCommand =
     | SettingsUpdated of EngineSettings
     | GetProgress of AsyncReplyChannel<TorrentProgress>
     | PieceVerified of pieceIndex: int * passed: bool
+    | PersistStats
 
 // sent TO the EngineAgent
 type EngineCommand =

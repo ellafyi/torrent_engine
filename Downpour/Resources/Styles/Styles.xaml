@@ -2,21 +2,7 @@
 
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:conv="clr-namespace:Downpour.Converters">
-
-    <!-- Converter singletons -->
-    <conv:BytesToStringConverter x:Key="BytesConv" />
-    <conv:RateToStringConverter x:Key="RateConv" />
-    <conv:EtaToStringConverter x:Key="EtaConv" />
-    <conv:RatioToStringConverter x:Key="RatioConv" />
-    <conv:ProgressToStringConverter x:Key="PctConv" />
-    <conv:StatusToColorConverter x:Key="StatusColorConv" />
-    <conv:RatioToColorConverter x:Key="RatioColorConv" />
-    <conv:StatusToLabelConverter x:Key="StatusLabelConv" />
-    <conv:SpeedToColorConverter x:Key="SpeedColorConv" />
-    <conv:InvertBoolConverter x:Key="InvertBool" />
-    <conv:NullToVisibleConverter x:Key="NullToVisConverter" />
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
     <!-- Global defaults -->
 
@@ -41,114 +27,6 @@
 
     <Style TargetType="Border">
         <Setter Property="StrokeThickness" Value="0" />
-    </Style>
-
-    <!-- Shared input styles -->
-
-    <Style x:Key="InputBorderStyle" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="{StaticResource Bg1}" />
-        <Setter Property="Stroke" Value="{StaticResource Line2Brush}" />
-        <Setter Property="StrokeThickness" Value="1" />
-        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
-        <Setter Property="Padding" Value="2,0" />
-    </Style>
-
-    <Style x:Key="InputEntryStyle" TargetType="Entry">
-        <Setter Property="TextColor" Value="{StaticResource Fg0}" />
-        <Setter Property="BackgroundColor" Value="Transparent" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="HeightRequest" Value="28" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-    </Style>
-
-    <!-- Toolbar button styles -->
-
-    <Style x:Key="TbtnStyle" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="Transparent" />
-        <Setter Property="TextColor" Value="{StaticResource Fg1}" />
-        <Setter Property="BorderColor" Value="Transparent" />
-        <Setter Property="BorderWidth" Value="1" />
-        <Setter Property="CornerRadius" Value="5" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="HeightRequest" Value="28" />
-        <Setter Property="Padding" Value="8,0" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-        <Setter Property="MinimumWidthRequest" Value="0" />
-    </Style>
-
-    <Style x:Key="TbtnPrimaryStyle" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
-        <Setter Property="TextColor" Value="#1A1206" />
-        <Setter Property="BorderColor" Value="{StaticResource AccentDim}" />
-        <Setter Property="BorderWidth" Value="1" />
-        <Setter Property="CornerRadius" Value="5" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="HeightRequest" Value="28" />
-        <Setter Property="Padding" Value="8,0" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-        <Setter Property="MinimumWidthRequest" Value="0" />
-    </Style>
-
-    <Style x:Key="TbtnDangerStyle" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="Transparent" />
-        <Setter Property="TextColor" Value="{StaticResource Fg1}" />
-        <Setter Property="BorderColor" Value="Transparent" />
-        <Setter Property="BorderWidth" Value="1" />
-        <Setter Property="CornerRadius" Value="5" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="HeightRequest" Value="28" />
-        <Setter Property="Padding" Value="8,0" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-        <Setter Property="MinimumWidthRequest" Value="0" />
-    </Style>
-
-    <!-- Sidebar item style -->
-
-    <Style x:Key="SbItemStyle" TargetType="Grid">
-        <Setter Property="HeightRequest" Value="26" />
-        <Setter Property="Padding" Value="14,0,10,0" />
-    </Style>
-
-    <!-- Detail tab button -->
-
-    <Style x:Key="DTabStyle" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="Transparent" />
-        <Setter Property="TextColor" Value="{StaticResource Fg2}" />
-        <Setter Property="BorderColor" Value="Transparent" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="HeightRequest" Value="30" />
-        <Setter Property="Padding" Value="12,0" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-        <Setter Property="MinimumWidthRequest" Value="0" />
-    </Style>
-
-    <!-- Menu bar item -->
-
-    <Style x:Key="MenuItemStyle" TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource Fg1}" />
-        <Setter Property="FontSize" Value="12" />
-        <Setter Property="Padding" Value="10,0" />
-        <Setter Property="HeightRequest" Value="26" />
-        <Setter Property="VerticalOptions" Value="Center" />
-        <Setter Property="VerticalTextAlignment" Value="Center" />
-    </Style>
-
-    <!-- Table header cell -->
-
-    <Style x:Key="ThStyle" TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{StaticResource Bg2}" />
-        <Setter Property="TextColor" Value="{StaticResource Fg2}" />
-        <Setter Property="BorderColor" Value="Transparent" />
-        <Setter Property="BorderWidth" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="FontSize" Value="11" />
-        <Setter Property="HeightRequest" Value="26" />
-        <Setter Property="Padding" Value="8,0" />
-        <Setter Property="MinimumHeightRequest" Value="0" />
-        <Setter Property="MinimumWidthRequest" Value="0" />
     </Style>
 
 </ResourceDictionary>

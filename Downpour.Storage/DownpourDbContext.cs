@@ -6,4 +6,5 @@ namespace Downpour.Storage;
 public class DownpourDbContext(DbContextOptions<DownpourDbContext> options) : DbContext(options)
 {
     public DbSet<Torrent> Torrents { get; set; } = null!;
+    public DbSet<GlobalStats> GlobalStats { get; set; } = null!;
 }
