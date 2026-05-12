@@ -113,6 +113,16 @@ public partial class MainViewModel : ObservableObject
                     _pendingProgress.TryRemove(sc.torrentId, out _);
                     var scItem = Torrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
                     if (scItem != null) scItem.UpdateStatus(sc.Item2);
+                    if (sc.Item2.IsPaused || sc.Item2 is TorrentStatus.Errored)
+                    {
+                        _currentSpeeds.Remove(sc.torrentId);
+                        if (scItem != null)
+                        {
+                            scItem.DownloadSpeed = "↓ 0 B/s";
+                            scItem.UploadSpeed = "↑ 0 B/s";
+                        }
+                        UpdateGlobalSpeedStrings();
+                    }
                     break;
 
                 case EngineEvent.TorrentRemoved removed:
