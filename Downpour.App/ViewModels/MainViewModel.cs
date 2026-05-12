@@ -199,6 +199,15 @@ public partial class MainViewModel : ObservableObject
                     UpdateGlobalSpeedStrings();
                     break;
 
+                case var _ when ev.IsDatabaseCleared:
+                    _pendingProgress.Clear();
+                    _allTorrents.Clear();
+                    Torrents.Clear();
+                    _currentSpeeds.Clear();
+                    SelectedTorrent = null;
+                    UpdateGlobalSpeedStrings();
+                    break;
+
                 case EngineEvent.GlobalStatsUpdate gs:
                     AllTimeStats = $"↓ {FormatBytes(gs.downloaded)}  ↑ {FormatBytes(gs.uploaded)}";
                     break;
@@ -232,15 +241,12 @@ public partial class MainViewModel : ObservableObject
             foreach (var (_, p) in snapshot)
             {
                 var item = _allTorrents.FirstOrDefault(t => t.TorrentId == p.TorrentId);
-                if (item == null)
+                if (item != null)
                 {
-                    item = new TorrentItemViewModel();
-                    _allTorrents.Add(item);
+                    item.Update(p);
+                    UpdateItemVisibility(item);
+                    _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
                 }
-
-                item.Update(p);
-                UpdateItemVisibility(item);
-                _currentSpeeds[p.TorrentId] = (p.DownloadSpeedBps, p.UploadSpeedBps);
             }
 
             if (snapshot.Length > 0) UpdateGlobalSpeedStrings();

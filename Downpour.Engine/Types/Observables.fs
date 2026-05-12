@@ -28,3 +28,4 @@ type EngineEvent =
     | StatusChanged of torrentId: int * TorrentStatus
     | Error of torrentId: int * message: string
     | GlobalStatsUpdate of downloaded: int64 * uploaded: int64
+    | DatabaseCleared

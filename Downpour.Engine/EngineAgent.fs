@@ -317,13 +317,13 @@ let private handleClearDatabase
         for torrentId, agent in Map.toSeq state.Torrents do
             agent.Post Pause
             agent.Dispose()
-            ctx.Notify(EngineEvent.TorrentRemoved torrentId)
 
         state.Torrents <- Map.empty
         state.SavePaths <- Map.empty
         state.LatestProgress <- Map.empty
 
         do! ctx.Repository.ClearAllAsync() |> Async.AwaitTask
+        ctx.Notify(EngineEvent.DatabaseCleared)
         reply.Reply(())
     }
 
