@@ -16,11 +16,15 @@ if (!File.Exists(torrentFile))
     return 1;
 }
 
-var settings = new EngineSettings((ushort)6881, seedingEnabled: false, maxDownloadSpeedKbps: 0, maxUploadSpeedMbps: 0);
+var settings = new EngineSettings(6881, false, 0, 0);
 using var engine = Engine.createEngine(settings);
 
 var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+Console.CancelKeyPress += (_, e) =>
+{
+    e.Cancel = true;
+    cts.Cancel();
+};
 
 await engine.StartAsync();
 
@@ -52,7 +56,7 @@ engine.Events.Subscribe(new Observer(ev =>
             done.TrySetResult();
             break;
         case EngineEvent.Error err when err.torrentId == torrentId:
-            Console.Error.WriteLine($"\nError: {err.message}");
+            Console.Error.WriteLine("\nError:");
             done.TrySetResult();
             break;
     }
@@ -66,25 +70,38 @@ static void PrintProgress(TorrentProgress p)
 {
     var pct = p.TotalBytes > 0 ? 100.0 * p.DownloadedBytes / p.TotalBytes : 0.0;
     string status;
-    if      (p.Status.IsChecking)                  status = "Checking";
-    else if (p.Status.IsDownloading)               status = $"{pct:F1}%";
-    else if (p.Status.IsSeeding)                   status = "Seeding";
-    else if (p.Status.IsPaused)                    status = "Paused";
-    else if (p.Status is TorrentStatus.Errored e)  status = $"Error: {e.message}";
-    else                                           status = "?";
-    Console.Write($"\r{p.Name}: {status} | ↓ {Speed(p.DownloadSpeedBps)} ↑ {Speed(p.UploadSpeedBps)} | {p.PeerCount} peers   ");
+    if (p.Status.IsChecking) status = "Checking";
+    else if (p.Status.IsDownloading) status = $"{pct:F1}%";
+    else if (p.Status.IsSeeding) status = "Seeding";
+    else if (p.Status.IsPaused) status = "Paused";
+    else if (p.Status is TorrentStatus.Errored e) status = $"Error: {e.message}";
+    else status = "?";
+    Console.Write(
+        $"\r{p.Name}: {status} | ↓ {Speed(p.DownloadSpeedBps)} ↑ {Speed(p.UploadSpeedBps)} | {p.PeerCount} peers   ");
 }
 
-static string Speed(long bps) => bps switch
+static string Speed(long bps)
 {
-    >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
-    >= 1_000     => $"{bps / 1_000.0:F1} KB/s",
-    _            => $"{bps} B/s"
-};
+    return bps switch
+    {
+        >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
+        >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
+        _ => $"{bps} B/s"
+    };
+}
 
-class Observer(Action<EngineEvent> onNext) : IObserver<EngineEvent>
+internal class Observer(Action<EngineEvent> onNext) : IObserver<EngineEvent>
 {
-    public void OnNext(EngineEvent value) => onNext(value);
-    public void OnError(Exception error) { }
-    public void OnCompleted() { }
+    public void OnNext(EngineEvent value)
+    {
+        onNext(value);
+    }
+
+    public void OnError(Exception error)
+    {
+    }
+
+    public void OnCompleted()
+    {
+    }
 }
