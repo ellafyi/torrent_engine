@@ -9,7 +9,7 @@
              Title="Downpour"
              BackgroundColor="Transparent">
 
-    <Grid RowDefinitions="Auto, Auto, *">
+    <Grid RowDefinitions="Auto, *, Auto">
         <Grid.GestureRecognizers>
             <TapGestureRecognizer Tapped="OnBackgroundTapped" />
         </Grid.GestureRecognizers>
@@ -84,16 +84,9 @@
             </HorizontalStackLayout>
         </Grid>
 
-        <!-- Global speed chart -->
-        <controls:SpeedChartView Grid.Row="1"
-                                 HeightRequest="52"
-                                 Margin="8,0,8,4"
-                                 DownloadSamples="{Binding GlobalDownloadHistory}"
-                                 UploadSamples="{Binding GlobalUploadHistory}" />
-
         <!-- Torrent list -->
         <CollectionView x:Name="TorrentList"
-                        Grid.Row="2"
+                        Grid.Row="1"
                         BackgroundColor="Transparent"
                         ItemsSource="{Binding Torrents}"
                         SelectionMode="Single"
@@ -160,6 +153,13 @@
             </CollectionView.EmptyView>
 
         </CollectionView>
+
+        <!-- Global speed chart — flush to bottom edge -->
+        <controls:SpeedChartView Grid.Row="2"
+                                 HeightRequest="60"
+                                 Margin="0"
+                                 DownloadSamples="{Binding GlobalDownloadHistory}"
+                                 UploadSamples="{Binding GlobalUploadHistory}" />
 
     </Grid>
 
