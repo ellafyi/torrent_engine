@@ -120,7 +120,7 @@ let ``UDP-15 buildAnnounceRequest info_hash at bytes 16-35`` () =
             InfoHash = Array.init 20 byte }
 
     let buf = buildAnnounceRequest 1L 1 1 req
-    Assert.Equal<byte[]>(req.InfoHash, buf.[16..35])
+    Assert.Equal<byte[]>(req.InfoHash, buf[16..35])
 
 [<Fact>]
 let ``UDP-16 buildAnnounceRequest ip field is 0 at bytes 84-87`` () =

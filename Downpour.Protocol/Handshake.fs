@@ -8,9 +8,9 @@ let serialize (infoHash: byte[]) (peerId: byte[]) : byte[] =
 let deserialize (data: byte[]) : Result<HandshakeMessage, string> =
     if data.Length <> 68 then
         Error "Handshake must be 68 bytes"
-    elif data.[0] <> 19uy then
+    elif data[0] <> 19uy then
         Error "Invalid protocol string length"
-    elif data.[1..19] <> protocolString then
+    elif data[1..19] <> protocolString then
         Error "Invalid protocol string"
     else
         Ok

@@ -5,20 +5,12 @@ using Downpour.Engine.Types;
 
 namespace Downpour.App.Services;
 
-public class NavigationService : INavigationService
+public class NavigationService(IFilePickerService filePicker, ISpeedHistoryService speedHistory)
+    : INavigationService
 {
-    private readonly IFilePickerService _filePicker;
-    private readonly ISpeedHistoryService _speedHistory;
-
-    public NavigationService(IFilePickerService filePicker, ISpeedHistoryService speedHistory)
-    {
-        _filePicker = filePicker;
-        _speedHistory = speedHistory;
-    }
-
     public async Task<AddTorrentParameters?> ShowAddTorrentAsync()
     {
-        var vm = new AddTorrentViewModel(_filePicker);
+        var vm = new AddTorrentViewModel(filePicker);
         var page = new AddTorrentPage(vm);
         await Shell.Current.Navigation.PushModalAsync(page, false);
         return await vm.WaitForResultAsync();
@@ -35,7 +27,7 @@ public class NavigationService : INavigationService
 
     public async Task ShowDetailsAsync(TorrentItemViewModel item)
     {
-        var vm = new TorrentDetailsViewModel(item, _speedHistory);
+        var vm = new TorrentDetailsViewModel(item, speedHistory);
         var page = new TorrentDetailsPage(vm);
         await Shell.Current.Navigation.PushModalAsync(page, false);
         await vm.WaitForClosedAsync();

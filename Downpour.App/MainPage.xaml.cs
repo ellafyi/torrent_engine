@@ -4,9 +4,9 @@ namespace Downpour.App;
 
 public partial class MainPage : ContentPage
 {
-    private MainViewModel? _viewModel;
     private bool _initialized;
     private bool _suppressDeselect;
+    private MainViewModel? _viewModel;
 
     public MainPage()
     {
@@ -22,7 +22,7 @@ public partial class MainPage : ContentPage
         _viewModel = IPlatformApplication.Current!.Services.GetRequiredService<MainViewModel>();
         BindingContext = _viewModel;
 
-        Window.Destroying += async (_, _) => await _viewModel.ShutdownAsync();
+        Window?.Destroying += async (_, _) => await _viewModel.ShutdownAsync();
 
         try
         {
@@ -36,13 +36,17 @@ public partial class MainPage : ContentPage
 
     private void OnTorrentSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        // CollectionView changed selection — the tap that caused this should not deselect
         _suppressDeselect = true;
     }
 
     private void OnBackgroundTapped(object? sender, TappedEventArgs e)
     {
-        if (_suppressDeselect) { _suppressDeselect = false; return; }
+        if (_suppressDeselect)
+        {
+            _suppressDeselect = false;
+            return;
+        }
+
         if (_viewModel != null) _viewModel.SelectedTorrent = null;
     }
 }

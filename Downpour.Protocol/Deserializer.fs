@@ -3,13 +3,13 @@
 open System
 
 let private int32BE (span: ReadOnlySpan<byte>) : int =
-    (int span.[0] <<< 24)
-    ||| (int span.[1] <<< 16)
-    ||| (int span.[2] <<< 8)
-    ||| int span.[3]
+    (int span[0] <<< 24)
+    ||| (int span[1] <<< 16)
+    ||| (int span[2] <<< 8)
+    ||| int span[3]
 
 let private uint16BE (span: ReadOnlySpan<byte>) : uint16 =
-    (uint16 span.[0] <<< 8) ||| uint16 span.[1]
+    (uint16 span[0] <<< 8) ||| uint16 span.[1]
 
 let parse (mem: ReadOnlyMemory<byte>) : Result<PeerMessage * ReadOnlyMemory<byte>, string> =
     if mem.Length < 4 then
@@ -22,7 +22,7 @@ let parse (mem: ReadOnlyMemory<byte>) : Result<PeerMessage * ReadOnlyMemory<byte
         elif mem.Length < 4 + length then
             Error $"Expected {length} bytes, have {mem.Length - 4}"
         else
-            let id = mem.Span.[4]
+            let id = mem.Span[4]
             let payload = mem.Slice(5, length - 1)
             let rest = mem.Slice(4 + length)
 

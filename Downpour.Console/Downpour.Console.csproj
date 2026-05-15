@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Downpour.Engine\Downpour.Engine.fsproj" />
-        <PackageReference Include="Terminal.Gui" Version="1.*" />
+        <ProjectReference Include="..\Downpour.Engine\Downpour.Engine.fsproj"/>
+        <PackageReference Include="Terminal.Gui" Version="1.*"/>
     </ItemGroup>
 
 </Project>

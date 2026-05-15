@@ -48,10 +48,23 @@ let ``SER-09 Bitfield two bytes`` () =
 let ``SER-10 Request`` () =
     // length=13, id=6, index=0, begin=0, blockLength=16384 (0x4000)
     let expected =
-        [| 0uy; 0uy; 0uy; 13uy; 6uy
-           0uy; 0uy; 0uy; 0uy   // index
-           0uy; 0uy; 0uy; 0uy   // begin
-           0uy; 0uy; 0x40uy; 0uy |]  // blockLength
+        [| 0uy
+           0uy
+           0uy
+           13uy
+           6uy
+           0uy
+           0uy
+           0uy
+           0uy // index
+           0uy
+           0uy
+           0uy
+           0uy // begin
+           0uy
+           0uy
+           0x40uy
+           0uy |] // blockLength
 
     Assert.Equal<byte[]>(expected, Serializer.serialize (Request(0, 0, 16384)))
 
@@ -60,10 +73,21 @@ let ``SER-11 Piece`` () =
     let data = [| 0xBEuy; 0xEFuy |]
     // length=11, id=7, index=1, begin=0, data
     let expected =
-        [| 0uy; 0uy; 0uy; 11uy; 7uy
-           0uy; 0uy; 0uy; 1uy   // index
-           0uy; 0uy; 0uy; 0uy   // begin
-           0xBEuy; 0xEFuy |]    // data
+        [| 0uy
+           0uy
+           0uy
+           11uy
+           7uy
+           0uy
+           0uy
+           0uy
+           1uy // index
+           0uy
+           0uy
+           0uy
+           0uy // begin
+           0xBEuy
+           0xEFuy |] // data
 
     Assert.Equal<byte[]>(expected, Serializer.serialize (Piece(1, 0, data)))
 
@@ -71,10 +95,23 @@ let ``SER-11 Piece`` () =
 let ``SER-12 Cancel`` () =
     // same structure as Request but id=8
     let expected =
-        [| 0uy; 0uy; 0uy; 13uy; 8uy
-           0uy; 0uy; 0uy; 0uy   // index
-           0uy; 0uy; 0uy; 0uy   // begin
-           0uy; 0uy; 0x40uy; 0uy |]  // blockLength
+        [| 0uy
+           0uy
+           0uy
+           13uy
+           8uy
+           0uy
+           0uy
+           0uy
+           0uy // index
+           0uy
+           0uy
+           0uy
+           0uy // begin
+           0uy
+           0uy
+           0x40uy
+           0uy |] // blockLength
 
     Assert.Equal<byte[]>(expected, Serializer.serialize (Cancel(0, 0, 16384)))
 

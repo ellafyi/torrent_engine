@@ -78,27 +78,47 @@ let prepareFiles (layout: FileLayout) (saveBase: string) =
     match layout with
     | SingleFile _ ->
         let dir = Path.GetDirectoryName(saveBase)
-        if not (String.IsNullOrEmpty dir) then Directory.CreateDirectory(dir) |> ignore
+
+        if not (String.IsNullOrEmpty dir) then
+            Directory.CreateDirectory(dir) |> ignore
     | MultiFile files ->
         for file in files do
             let path = Path.Combine([| saveBase; yield! file.Path |])
             let dir = Path.GetDirectoryName(path)
-            if not (String.IsNullOrEmpty dir) then Directory.CreateDirectory(dir) |> ignore
 
-let writeBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceIndex: int) (blockOffset: int) (data: byte[]) : Async<unit> =
+            if not (String.IsNullOrEmpty dir) then
+                Directory.CreateDirectory(dir) |> ignore
+
+let writeBlock
+    (layout: FileLayout)
+    (saveBase: string)
+    (pieceSize: int64)
+    (pieceIndex: int)
+    (blockOffset: int)
+    (data: byte[])
+    : Async<unit> =
     async {
         let virtualStart = int64 pieceIndex * pieceSize + int64 blockOffset
         let segments = resolveRange layout saveBase virtualStart data.Length
         let mutable pos = 0
 
         for seg in segments do
-            use fs = new FileStream(seg.FilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)
+            use fs =
+                new FileStream(seg.FilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite)
+
             fs.Seek(seg.FileOffset, SeekOrigin.Begin) |> ignore
             do! fs.WriteAsync(data, pos, seg.Length) |> Async.AwaitTask
             pos <- pos + seg.Length
     }
 
-let readBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceIndex: int) (blockOffset: int) (blockLength: int) : Async<byte[]> =
+let readBlock
+    (layout: FileLayout)
+    (saveBase: string)
+    (pieceSize: int64)
+    (pieceIndex: int)
+    (blockOffset: int)
+    (blockLength: int)
+    : Async<byte[]> =
     async {
         let virtualStart = int64 pieceIndex * pieceSize + int64 blockOffset
         let segments = resolveRange layout saveBase virtualStart blockLength
@@ -106,7 +126,9 @@ let readBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceI
         let mutable pos = 0
 
         for seg in segments do
-            use fs = new FileStream(seg.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+            use fs =
+                new FileStream(seg.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+
             fs.Seek(seg.FileOffset, SeekOrigin.Begin) |> ignore
             let! _ = fs.ReadAsync(result, pos, seg.Length) |> Async.AwaitTask
             pos <- pos + seg.Length
@@ -114,7 +136,14 @@ let readBlock (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceI
         return result
     }
 
-let verifyPiece (layout: FileLayout) (saveBase: string) (pieceSize: int64) (pieceIndex: int) (pieceLength: int) (Sha1Hash expected) : Async<bool> =
+let verifyPiece
+    (layout: FileLayout)
+    (saveBase: string)
+    (pieceSize: int64)
+    (pieceIndex: int)
+    (pieceLength: int)
+    (Sha1Hash expected)
+    : Async<bool> =
     async {
         let! data = readBlock layout saveBase pieceSize pieceIndex 0 pieceLength
         return SHA1.HashData(data) = expected

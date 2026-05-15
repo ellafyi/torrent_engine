@@ -131,7 +131,11 @@ let private makeAgent
     : PeerAgent * (unit -> unit) =
     let agent = MailboxProcessor<PeerCommand>.Start(writeLoop stream notify)
     let startRead () = Async.Start(readLoop stream notify)
-    { PeerId = peerId; Post = agent.Post; Dispose = fun () -> client.Dispose() }, startRead
+
+    { PeerId = peerId
+      Post = agent.Post
+      Dispose = fun () -> client.Dispose() },
+    startRead
 
 let create
     (client: TcpClient)

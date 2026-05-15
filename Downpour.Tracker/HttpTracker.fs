@@ -126,7 +126,10 @@ let internal parseResponse (bytes: byte[]) : Result<AnnounceResponse, TrackerErr
 
 #if DEBUG
 let private loggingOn = Environment.GetEnvironmentVariable("DOWNPOUR_LOG") <> null
-let private log (msg: string) = if loggingOn then eprintfn "%s" msg
+
+let private log (msg: string) =
+    if loggingOn then
+        eprintfn "%s" msg
 #endif
 
 let announce (client: HttpClient) (url: string) (req: AnnounceRequest) : Async<Result<AnnounceResponse, TrackerError>> =
@@ -141,7 +144,9 @@ let announce (client: HttpClient) (url: string) (req: AnnounceRequest) : Async<R
 #endif
 
         try
-            use msg = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, fullUrl)
+            use msg =
+                new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, fullUrl)
+
             msg.Headers.TryAddWithoutValidation("User-Agent", "qBittorrent/5.0.0") |> ignore
             let! resp = client.SendAsync(msg) |> Async.AwaitTask
             let! bytes = resp.Content.ReadAsByteArrayAsync() |> Async.AwaitTask

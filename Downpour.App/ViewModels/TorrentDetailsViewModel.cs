@@ -6,17 +6,9 @@ namespace Downpour.App.ViewModels;
 
 public partial class TorrentDetailsViewModel : ObservableObject
 {
-    private readonly int _torrentId;
-    private readonly ISpeedHistoryService _speedHistory;
     private readonly TaskCompletionSource _closeTcs = new();
-
-    public TorrentItemViewModel Item { get; }
-
-    private IReadOnlyList<long> _downloadHistory = [];
-    public IReadOnlyList<long> DownloadHistory { get => _downloadHistory; private set => SetProperty(ref _downloadHistory, value); }
-
-    private IReadOnlyList<long> _uploadHistory = [];
-    public IReadOnlyList<long> UploadHistory { get => _uploadHistory; private set => SetProperty(ref _uploadHistory, value); }
+    private readonly ISpeedHistoryService _speedHistory;
+    private readonly int _torrentId;
 
     public TorrentDetailsViewModel(TorrentItemViewModel item, ISpeedHistoryService speedHistory)
     {
@@ -27,22 +19,38 @@ public partial class TorrentDetailsViewModel : ObservableObject
         Refresh();
     }
 
+    public TorrentItemViewModel Item { get; }
+
+    [ObservableProperty] public partial IReadOnlyList<long> DownloadHistory { get; private set; } = [];
+
+    public IReadOnlyList<long> UploadHistory
+    {
+        get;
+        private set => SetProperty(ref field, value);
+    } = [];
+
     private void OnHistoryUpdated()
     {
         DownloadHistory = _speedHistory.GetTorrentDownloadHistory(_torrentId);
-        UploadHistory   = _speedHistory.GetTorrentUploadHistory(_torrentId);
+        UploadHistory = _speedHistory.GetTorrentUploadHistory(_torrentId);
     }
 
     private void Refresh()
     {
         DownloadHistory = _speedHistory.GetTorrentDownloadHistory(_torrentId);
-        UploadHistory   = _speedHistory.GetTorrentUploadHistory(_torrentId);
+        UploadHistory = _speedHistory.GetTorrentUploadHistory(_torrentId);
     }
 
-    public Task WaitForClosedAsync() => _closeTcs.Task;
+    public Task WaitForClosedAsync()
+    {
+        return _closeTcs.Task;
+    }
 
     [RelayCommand]
-    private void Close() => Cancel();
+    private void Close()
+    {
+        Cancel();
+    }
 
     public void Cancel()
     {

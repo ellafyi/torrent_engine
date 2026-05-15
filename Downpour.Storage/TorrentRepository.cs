@@ -17,7 +17,10 @@ public class TorrentRepository(DownpourDbContext context)
             context.Torrents.Add(torrent);
             await context.SaveChangesAsync();
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<(long TotalDownloaded, long TotalUploaded)> IncrementTransferStatsAsync(
@@ -48,7 +51,10 @@ public class TorrentRepository(DownpourDbContext context)
             await context.SaveChangesAsync();
             return (gs.TotalDownloaded, gs.TotalUploaded);
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<(long TotalDownloaded, long TotalUploaded)> GetGlobalStatsAsync()
@@ -59,7 +65,10 @@ public class TorrentRepository(DownpourDbContext context)
             var gs = await context.GlobalStats.FindAsync(1);
             return gs == null ? (0L, 0L) : (gs.TotalDownloaded, gs.TotalUploaded);
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<IEnumerable<Torrent>> GetAllTorrentsAsync()
@@ -69,7 +78,10 @@ public class TorrentRepository(DownpourDbContext context)
         {
             return await context.Torrents.ToListAsync();
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<(long TotalUploaded, long TotalDownloaded)> GetGlobalStateAsync()
@@ -81,7 +93,10 @@ public class TorrentRepository(DownpourDbContext context)
             var totalDownloaded = await context.Torrents.SumAsync(t => t.DownloadedBytes);
             return (totalUploaded, totalDownloaded);
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task UpdateBitfieldAsync(int torrentId, byte[] bitfield)
@@ -93,7 +108,10 @@ public class TorrentRepository(DownpourDbContext context)
                 .Where(t => t.Id == torrentId)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.PieceBitfield, bitfield));
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task UpdateStatusAsync(int torrentId, TorrentStatus status)
@@ -105,7 +123,10 @@ public class TorrentRepository(DownpourDbContext context)
                 .Where(t => t.Id == torrentId)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.Status, status));
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<Torrent?> GetByInfoHashAsync(string infoHashHex)
@@ -115,7 +136,10 @@ public class TorrentRepository(DownpourDbContext context)
         {
             return await context.Torrents.FirstOrDefaultAsync(t => t.InfoHash == infoHashHex);
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task DeleteTorrentAsync(int torrentId)
@@ -127,7 +151,10 @@ public class TorrentRepository(DownpourDbContext context)
                 .Where(t => t.Id == torrentId)
                 .ExecuteDeleteAsync();
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task ClearAllAsync()
@@ -137,6 +164,9 @@ public class TorrentRepository(DownpourDbContext context)
         {
             await context.Torrents.ExecuteDeleteAsync();
         }
-        finally { _lock.Release(); }
+        finally
+        {
+            _lock.Release();
+        }
     }
 }

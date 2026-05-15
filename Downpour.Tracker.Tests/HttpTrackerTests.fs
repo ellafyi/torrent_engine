@@ -155,7 +155,7 @@ let ``HTTP-14 parseResponse returns TrackerFailure when failure reason present``
 
     match parseResponse bytes with
     | Error(TrackerFailure msg) -> Assert.Equal("torrent not registered", msg)
-    | other -> Assert.Fail(sprintf "Expected TrackerFailure, got %A" other)
+    | other -> Assert.Fail $"Expected TrackerFailure, got %A{other}"
 
 [<Fact>]
 let ``HTTP-15 parseResponse returns ParseError when interval missing`` () =
@@ -176,7 +176,7 @@ let ``HTTP-16 parseResponse parses compact peers`` () =
                 Port = 6881us } ],
             r.Peers
         )
-    | Error e -> Assert.Fail(sprintf "%A" e)
+    | Error e -> Assert.Fail $"%A{e}"
 
 [<Fact>]
 let ``HTTP-17 parseResponse extracts min interval when present`` () =
@@ -185,7 +185,7 @@ let ``HTTP-17 parseResponse extracts min interval when present`` () =
 
     match parseResponse bytes with
     | Ok r -> Assert.Equal(Some 60, r.MinInterval)
-    | Error e -> Assert.Fail(sprintf "%A" e)
+    | Error e -> Assert.Fail $"%A{e}"
 
 [<Fact>]
 let ``HTTP-18 parseResponse extracts tracker id when present`` () =
@@ -194,7 +194,7 @@ let ``HTTP-18 parseResponse extracts tracker id when present`` () =
 
     match parseResponse bytes with
     | Ok r -> Assert.Equal(Some "abcdef", r.TrackerId)
-    | Error e -> Assert.Fail(sprintf "%A" e)
+    | Error e -> Assert.Fail $"%A{e}"
 
 [<Fact>]
 let ``HTTP-19 parseResponse returns ParseError for non-dictionary input`` () =

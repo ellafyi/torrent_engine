@@ -8,11 +8,11 @@ public class SpeedChartView : SKCanvasView
 {
     public static readonly BindableProperty DownloadSamplesProperty =
         BindableProperty.Create(nameof(DownloadSamples), typeof(IReadOnlyList<long>), typeof(SpeedChartView),
-            null, propertyChanged: (b, _, _) => ((SpeedChartView)b).InvalidateSurface());
+            propertyChanged: (b, _, _) => ((SpeedChartView)b).InvalidateSurface());
 
     public static readonly BindableProperty UploadSamplesProperty =
         BindableProperty.Create(nameof(UploadSamples), typeof(IReadOnlyList<long>), typeof(SpeedChartView),
-            null, propertyChanged: (b, _, _) => ((SpeedChartView)b).InvalidateSurface());
+            propertyChanged: (b, _, _) => ((SpeedChartView)b).InvalidateSurface());
 
     public IReadOnlyList<long>? DownloadSamples
     {
@@ -50,19 +50,21 @@ public class SpeedChartView : SKCanvasView
         if (dl == null || dl.Count < 2) return;
 
         var allSamples = ul != null ? dl.Concat(ul) : dl;
-        long maxVal = Math.Max(allSamples.DefaultIfEmpty(0).Max(), 1);
+        var maxVal = Math.Max(allSamples.DefaultIfEmpty(0).Max(), 1);
 
         const float topPad = 4f;
-        float drawH = h - topPad;
+        var drawH = h - topPad;
 
         // Reserve left margin sized to the widest scale label
-        float textSize = Math.Clamp(h * 0.13f, 12f, 20f);
+        var textSize = Math.Clamp(h * 0.13f, 12f, 20f);
         float labelW;
         using (var font = new SKFont { Size = textSize })
+        {
             labelW = font.MeasureText(FormatSpeed(maxVal)) + 10f;
+        }
 
-        float chartX = labelW;
-        float chartW = w - labelW;
+        var chartX = labelW;
+        var chartW = w - labelW;
 
         DrawScale(canvas, maxVal, chartX, chartW, h, drawH, topPad, textSize);
 
@@ -91,15 +93,15 @@ public class SpeedChartView : SKCanvasView
             Color = new SKColor(200, 200, 200, 160)
         };
 
-        foreach (float frac in new[] { 1f, 0.5f, 0f })
+        foreach (var frac in new[] { 1f, 0.5f, 0f })
         {
-            float y = topPad + (1f - frac) * drawH;
+            var y = topPad + (1f - frac) * drawH;
             canvas.DrawLine(chartX, y, chartX + chartW, y, gridPaint);
 
-            string label = FormatSpeed((long)(maxVal * frac));
-            font.MeasureText(label, out SKRect bounds);
+            var label = FormatSpeed((long)(maxVal * frac));
+            font.MeasureText(label, out var bounds);
 
-            float baseline = Math.Clamp(y - bounds.MidY, -bounds.Top, h - bounds.Bottom);
+            var baseline = Math.Clamp(y - bounds.MidY, -bounds.Top, h - bounds.Bottom);
             canvas.DrawText(label, chartX - bounds.Width - 4f, baseline, SKTextAlign.Left, font, textPaint);
         }
     }
@@ -108,15 +110,18 @@ public class SpeedChartView : SKCanvasView
         float chartX, float chartW, float h, float drawH, float topPad,
         long maxVal, SKColor lineColor)
     {
-        int n = samples.Count;
-        float step = chartW / (n - 1);
+        var n = samples.Count;
+        var step = chartW / (n - 1);
 
-        float Y(int i) => topPad + (1f - samples[i] / (float)maxVal) * drawH;
+        float Y(int i)
+        {
+            return topPad + (1f - samples[i] / (float)maxVal) * drawH;
+        }
 
         // Filled area with gradient fading from opaque near the top to transparent at the bottom
         using var fillPath = new SKPath();
         fillPath.MoveTo(chartX, Y(0));
-        for (int i = 1; i < n; i++)
+        for (var i = 1; i < n; i++)
             fillPath.LineTo(chartX + i * step, Y(i));
         fillPath.LineTo(chartX + chartW, h);
         fillPath.LineTo(chartX, h);
@@ -125,8 +130,11 @@ public class SpeedChartView : SKCanvasView
         using var shader = SKShader.CreateLinearGradient(
             new SKPoint(0f, topPad),
             new SKPoint(0f, h),
-            new[] { new SKColor(lineColor.Red, lineColor.Green, lineColor.Blue, 0xA0),
-                    new SKColor(lineColor.Red, lineColor.Green, lineColor.Blue, 0x00) },
+            new[]
+            {
+                new SKColor(lineColor.Red, lineColor.Green, lineColor.Blue, 0xA0),
+                new SKColor(lineColor.Red, lineColor.Green, lineColor.Blue, 0x00)
+            },
             SKShaderTileMode.Clamp
         );
         using var fillPaint = new SKPaint { IsAntialias = true, Style = SKPaintStyle.Fill, Shader = shader };
@@ -135,7 +143,7 @@ public class SpeedChartView : SKCanvasView
         // Stroke line on top
         using var linePath = new SKPath();
         linePath.MoveTo(chartX, Y(0));
-        for (int i = 1; i < n; i++)
+        for (var i = 1; i < n; i++)
             linePath.LineTo(chartX + i * step, Y(i));
 
         using var linePaint = new SKPaint
@@ -148,10 +156,13 @@ public class SpeedChartView : SKCanvasView
         canvas.DrawPath(linePath, linePaint);
     }
 
-    private static string FormatSpeed(long bps) => bps switch
+    private static string FormatSpeed(long bps)
     {
-        >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
-        >= 1_000     => $"{bps / 1_000.0:F1} KB/s",
-        _            => $"{bps} B/s"
-    };
+        return bps switch
+        {
+            >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
+            >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
+            _ => $"{bps} B/s"
+        };
+    }
 }

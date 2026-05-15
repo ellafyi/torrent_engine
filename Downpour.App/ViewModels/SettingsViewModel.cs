@@ -12,8 +12,7 @@ public partial class SettingsViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
     public partial string ListenPortText { get; set; } = "6881";
 
-    [ObservableProperty]
-    public partial bool SeedingEnabled { get; set; } = true;
+    [ObservableProperty] public partial bool SeedingEnabled { get; set; } = true;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
@@ -25,29 +24,41 @@ public partial class SettingsViewModel : ObservableObject
 
     public void Initialize(EngineSettings current)
     {
-        ListenPortText      = current.ListenPort.ToString();
-        SeedingEnabled      = current.SeedingEnabled;
+        ListenPortText = current.ListenPort.ToString();
+        SeedingEnabled = current.SeedingEnabled;
         MaxDownloadKbpsText = current.MaxDownloadSpeedKbps.ToString();
-        MaxUploadMbpsText   = current.MaxUploadSpeedMbps.ToString();
+        MaxUploadMbpsText = current.MaxUploadSpeedMbps.ToString();
     }
 
-    public Task<EngineSettings?> WaitForResultAsync() => _tcs.Task;
-    public void Cancel() => _tcs.TrySetResult(null);
+    public Task<EngineSettings?> WaitForResultAsync()
+    {
+        return _tcs.Task;
+    }
 
-    private bool CanConfirm() =>
-        int.TryParse(ListenPortText,      out var port) && port is >= 1 and <= 65535 &&
-        int.TryParse(MaxDownloadKbpsText, out var dl)   && dl  >= 0 &&
-        int.TryParse(MaxUploadMbpsText,   out var ul)   && ul  >= 0;
+    public void Cancel()
+    {
+        _tcs.TrySetResult(null);
+    }
+
+    private bool CanConfirm()
+    {
+        return int.TryParse(ListenPortText, out var port) && port is >= 1 and <= 65535 &&
+               int.TryParse(MaxDownloadKbpsText, out var dl) && dl >= 0 &&
+               int.TryParse(MaxUploadMbpsText, out var ul) && ul >= 0;
+    }
 
     [RelayCommand(CanExecute = nameof(CanConfirm))]
     private void Confirm()
     {
         var port = (ushort)int.Parse(ListenPortText);
-        var dl   = int.Parse(MaxDownloadKbpsText);
-        var ul   = int.Parse(MaxUploadMbpsText);
+        var dl = int.Parse(MaxDownloadKbpsText);
+        var ul = int.Parse(MaxUploadMbpsText);
         _tcs.TrySetResult(new EngineSettings(port, SeedingEnabled, dl, ul));
     }
 
     [RelayCommand]
-    private void CancelDialog() => _tcs.TrySetResult(null);
+    private void CancelDialog()
+    {
+        _tcs.TrySetResult(null);
+    }
 }

@@ -1,4 +1,4 @@
-module Downpour.Torrent.Parser
+﻿module Downpour.Torrent.Parser
 
 open System
 open System.Security.Cryptography
@@ -134,10 +134,7 @@ let private parseInfo (infoDict: BencodeValue) : Result<InfoDict, string> =
 
         let! priv =
             match dictGet "private" infoDict with
-            | Ok(Some v) ->
-                asInt v
-                |> Result.map (fun i -> i = 1L)
-                |> Result.map Some
+            | Ok(Some v) -> asInt v |> Result.map (fun i -> i = 1L) |> Result.map Some
             | Ok None -> Ok None
             | Error e -> Error e
 
@@ -207,9 +204,7 @@ let parse (bytes: byte[]) : Result<TorrentMetaInfo, string> =
 
         let! creationDate =
             match creationDateVal with
-            | Some v ->
-                asInt v
-                |> Result.map (fun i -> DateTimeOffset.FromUnixTimeSeconds i |> Some)
+            | Some v -> asInt v |> Result.map (fun i -> DateTimeOffset.FromUnixTimeSeconds i |> Some)
             | None -> Ok None
 
         let! info = parseInfo infoVal

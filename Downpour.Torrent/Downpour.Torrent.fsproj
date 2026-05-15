@@ -7,9 +7,9 @@
 
     <ItemGroup>
         <Compile Include="AssemblyInfo.fs"/>
-        <Compile Include="Types.fs" />
-        <Compile Include="Parser.fs" />
-        <ProjectReference Include="..\Downpour.Bencode\Downpour.Bencode.fsproj" />
+        <Compile Include="Types.fs"/>
+        <Compile Include="Parser.fs"/>
+        <ProjectReference Include="..\Downpour.Bencode\Downpour.Bencode.fsproj"/>
     </ItemGroup>
 
 </Project>

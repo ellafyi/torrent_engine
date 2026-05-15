@@ -16,13 +16,15 @@ public partial class MainViewModel : ObservableObject
     private readonly Dictionary<int, (long down, long up)> _currentSpeeds = new();
     private readonly IDialogService _dialog;
     private readonly IEngine _engine;
+    private readonly IFileSystemService _fileSystem;
     private readonly INavigationService _navigation;
     private readonly ConcurrentDictionary<int, TorrentProgress> _pendingProgress = new();
     private readonly SettingsService _settingsService;
     private readonly ISpeedHistoryService _speedHistory;
-    private readonly IFileSystemService _fileSystem;
 
     private string _allTimeStats = " 0 B   0 B";
+
+    private string _currentFilter = "All";
     private Timer? _flushTimer;
 
     private IReadOnlyList<long> _globalDownloadHistory = [];
@@ -31,7 +33,8 @@ public partial class MainViewModel : ObservableObject
     private IDisposable? _subscription;
 
     public MainViewModel(IEngine engine, SettingsService settingsService,
-        INavigationService navigation, IDialogService dialog, ISpeedHistoryService speedHistory, IFileSystemService fileSystem)
+        INavigationService navigation, IDialogService dialog, ISpeedHistoryService speedHistory,
+        IFileSystemService fileSystem)
     {
         _engine = engine;
         _settingsService = settingsService;
@@ -45,17 +48,12 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<TorrentItemViewModel> Torrents { get; } = [];
 
-    private string _currentFilter = "All";
-
     private string CurrentFilter
     {
         get => _currentFilter;
         set
         {
-            if (SetProperty(ref _currentFilter, value))
-            {
-                ApplyFilter();
-            }
+            if (SetProperty(ref _currentFilter, value)) ApplyFilter();
         }
     }
 
@@ -96,7 +94,6 @@ public partial class MainViewModel : ObservableObject
     public bool HasThrottleLimits => ThrottleLimitText.Length > 0;
 
 
-
     [RelayCommand]
     private void SetFilter(string filter)
     {
@@ -106,24 +103,28 @@ public partial class MainViewModel : ObservableObject
     private void ApplyFilter()
     {
         Torrents.Clear();
-        foreach (var t in _allTorrents)
-            if (MatchesFilter(t, CurrentFilter))
-                Torrents.Add(t);
+        foreach (var t in _allTorrents.Where(t => MatchesFilter(t, CurrentFilter)))
+            Torrents.Add(t);
     }
 
     private static bool MatchesFilter(TorrentItemViewModel t, string filter)
     {
-        if (filter == "All") return true;
-        if (filter == "Downloading" && t.StatusLabel == "Downloading") return true;
-        if (filter == "Seeding" && t.StatusLabel == "Seeding") return true;
-        if (filter == "Paused" && t.StatusLabel == "Paused") return true;
-        if (filter == "Error" && t.StatusLabel.StartsWith("Error")) return true;
-        return false;
+        switch (filter)
+        {
+            case "All":
+            case "Downloading" when t.StatusLabel == "Downloading":
+            case "Seeding" when t.StatusLabel == "Seeding":
+            case "Paused" when t.StatusLabel == "Paused":
+            case "Error" when t.StatusLabel.StartsWith("Error"):
+                return true;
+            default:
+                return false;
+        }
     }
 
     private void RefreshThrottleDisplay()
     {
-        var s = _settingsService.Load();
+        var s = SettingsService.Load();
         var parts = new List<string>();
         if (s.MaxDownloadSpeedKbps > 0) parts.Add($"↓ {s.MaxDownloadSpeedKbps} KB/s");
         if (s.MaxUploadSpeedMbps > 0) parts.Add($"↑ {s.MaxUploadSpeedMbps} MB/s");
@@ -233,11 +234,9 @@ public partial class MainViewModel : ObservableObject
     private void HandleTorrentError(EngineEvent.Error err)
     {
         var errItem = _allTorrents.FirstOrDefault(t => t.TorrentId == err.torrentId);
-        if (errItem != null)
-        {
-            errItem.StatusLabel = "Error: " + err.message;
-            UpdateItemVisibility(errItem);
-        }
+        if (errItem == null) return;
+        errItem.StatusLabel = "Error: " + err.message;
+        UpdateItemVisibility(errItem);
     }
 
     private void UpdateItemVisibility(TorrentItemViewModel item)
@@ -345,14 +344,14 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task PauseTorrent()
     {
-        if (SelectedTorrent == null || !SelectedTorrent.CanPause) return;
+        if (SelectedTorrent is not { CanPause: true }) return;
         await _engine.PauseTorrentAsync(SelectedTorrent.TorrentId);
     }
 
     [RelayCommand]
     private async Task ResumeTorrent()
     {
-        if (SelectedTorrent == null || !SelectedTorrent.CanResume) return;
+        if (SelectedTorrent is not { CanResume: true }) return;
         await _engine.ResumeTorrentAsync(SelectedTorrent.TorrentId);
     }
 
@@ -373,9 +372,9 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task OpenSettings()
     {
-        var result = await _navigation.ShowSettingsAsync(_settingsService.Load());
+        var result = await _navigation.ShowSettingsAsync(SettingsService.Load());
         if (result == null) return;
-        _settingsService.Save(result);
+        SettingsService.Save(result);
         await _engine.UpdateSettingsAsync(result);
         RefreshThrottleDisplay();
     }

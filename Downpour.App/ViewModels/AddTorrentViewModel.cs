@@ -16,29 +16,24 @@ public partial class AddTorrentViewModel : ObservableObject
         TorrentFilePaths = [];
     }
 
-    private IReadOnlyList<string> _torrentFilePaths = [];
-    public IReadOnlyList<string> TorrentFilePaths
+    private IReadOnlyList<string> TorrentFilePaths
     {
-        get => _torrentFilePaths;
+        get;
         set
         {
-            if (!SetProperty(ref _torrentFilePaths, value)) return;
+            if (!SetProperty(ref field, value)) return;
             ConfirmCommand.NotifyCanExecuteChanged();
             OnPropertyChanged(nameof(TorrentFileNames));
             OnPropertyChanged(nameof(ConfirmButtonText));
         }
     }
 
-    private string? _downloadPath;
     public string? DownloadPath
     {
-        get => _downloadPath;
+        get;
         set
         {
-            if (SetProperty(ref _downloadPath, value))
-            {
-                ConfirmCommand.NotifyCanExecuteChanged();
-            }
+            if (SetProperty(ref field, value)) ConfirmCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -56,9 +51,15 @@ public partial class AddTorrentViewModel : ObservableObject
         _tcs = new TaskCompletionSource<AddTorrentParameters?>();
     }
 
-    public Task<AddTorrentParameters?> WaitForResultAsync() => _tcs.Task;
+    public Task<AddTorrentParameters?> WaitForResultAsync()
+    {
+        return _tcs.Task;
+    }
 
-    public void Cancel() => _tcs.TrySetResult(null);
+    public void Cancel()
+    {
+        _tcs.TrySetResult(null);
+    }
 
     [RelayCommand]
     private async Task BrowseTorrentFiles()
@@ -75,11 +76,19 @@ public partial class AddTorrentViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanConfirm))]
-    private void Confirm() => _tcs.TrySetResult(new AddTorrentParameters(TorrentFilePaths, DownloadPath!));
+    private void Confirm()
+    {
+        _tcs.TrySetResult(new AddTorrentParameters(TorrentFilePaths, DownloadPath!));
+    }
 
-    private bool CanConfirm() =>
-        TorrentFilePaths.Count > 0 && !string.IsNullOrEmpty(DownloadPath);
+    private bool CanConfirm()
+    {
+        return TorrentFilePaths.Count > 0 && !string.IsNullOrEmpty(DownloadPath);
+    }
 
     [RelayCommand]
-    private void CancelDialog() => Cancel();
+    private void CancelDialog()
+    {
+        Cancel();
+    }
 }

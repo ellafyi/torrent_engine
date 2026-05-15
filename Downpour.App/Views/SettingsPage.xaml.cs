@@ -23,7 +23,12 @@ public partial class SettingsPage : ContentPage
     private async Task WatchAndPop()
     {
         await _vm.WaitForResultAsync();
-        try { await Navigation.PopModalAsync(false); }
-        catch { }
+        try
+        {
+            await Navigation.PopModalAsync(false);
+        }
+        catch
+        {
+        }
     }
 }

@@ -24,7 +24,12 @@ public partial class AddTorrentPage : ContentPage
     private async Task WatchAndPop()
     {
         await _vm.WaitForResultAsync();
-        try { await Navigation.PopModalAsync(false); }
-        catch { }
+        try
+        {
+            await Navigation.PopModalAsync(false);
+        }
+        catch
+        {
+        }
     }
 }

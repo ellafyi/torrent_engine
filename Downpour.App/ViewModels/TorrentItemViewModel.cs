@@ -49,18 +49,24 @@ public partial class TorrentItemViewModel : ObservableObject
         return "Unknown";
     }
 
-    private static string FormatBytes(long bytes) => bytes switch
+    private static string FormatBytes(long bytes)
     {
-        >= 1_000_000_000 => $"{bytes / 1_000_000_000.0:F1} GB",
-        >= 1_000_000 => $"{bytes / 1_000_000.0:F1} MB",
-        >= 1_000 => $"{bytes / 1_000.0:F1} KB",
-        _ => $"{bytes} B"
-    };
+        return bytes switch
+        {
+            >= 1_000_000_000 => $"{bytes / 1_000_000_000.0:F1} GB",
+            >= 1_000_000 => $"{bytes / 1_000_000.0:F1} MB",
+            >= 1_000 => $"{bytes / 1_000.0:F1} KB",
+            _ => $"{bytes} B"
+        };
+    }
 
-    private static string FormatSpeed(long bps) => bps switch
+    private static string FormatSpeed(long bps)
     {
-        >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
-        >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
-        _ => $"{bps} B/s"
-    };
+        return bps switch
+        {
+            >= 1_000_000 => $"{bps / 1_000_000.0:F1} MB/s",
+            >= 1_000 => $"{bps / 1_000.0:F1} KB/s",
+            _ => $"{bps} B/s"
+        };
+    }
 }

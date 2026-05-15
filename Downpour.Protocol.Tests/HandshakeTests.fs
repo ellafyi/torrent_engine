@@ -38,11 +38,11 @@ let ``HS-04 Wrong total length returns error`` () =
 [<Fact>]
 let ``HS-05 Wrong pstrlen byte returns error`` () =
     let bytes = Handshake.serialize sampleInfoHash samplePeerId |> Array.copy
-    bytes.[0] <- 18uy
+    bytes[0] <- 18uy
     Assert.True(Result.isError (Handshake.deserialize bytes))
 
 [<Fact>]
 let ``HS-06 Corrupted protocol string returns error`` () =
     let bytes = Handshake.serialize sampleInfoHash samplePeerId |> Array.copy
-    bytes.[1] <- byte 'X'
+    bytes[1] <- byte 'X'
     Assert.True(Result.isError (Handshake.deserialize bytes))

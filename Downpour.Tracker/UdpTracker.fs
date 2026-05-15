@@ -1,7 +1,6 @@
 module Downpour.Tracker.UdpTracker
 
 open System
-open System.Net
 open System.Net.Sockets
 open System.Buffers.Binary
 open System.Text
@@ -96,7 +95,7 @@ let internal parseAnnounceResponse (expectedTxId: int32) (buf: byte[]) : Result<
             let interval = readInt32BE buf 8
             let leechers = readInt32BE buf 12
             let seeders = readInt32BE buf 16
-            let peerBytes = buf.[20..]
+            let peerBytes = buf[20..]
 
             HttpTracker.parseCompactPeers peerBytes
             |> Result.map (fun peers ->

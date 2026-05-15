@@ -13,10 +13,7 @@ let rec encode (value: BencodeValue) : byte[] =
         let body = items |> List.map encode |> Array.concat
         Array.concat [ "l"B; body; "e"B ]
     | BencodeValue.Dictionary d ->
-        let sortedPairs =
-            d
-            |> Map.toSeq
-            |> Seq.sortWith (fun (a, _) (b, _) -> compare a b)
+        let sortedPairs = d |> Map.toSeq |> Seq.sortWith (fun (a, _) (b, _) -> compare a b)
 
         let body =
             sortedPairs

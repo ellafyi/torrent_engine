@@ -232,7 +232,9 @@ let private registerPeer (ctx: TorrentContext) (state: AgentState) (peer: PeerAg
               State = PeerState.initial
               Pending = 0 }
 
-        let newState = { state with Peers = Map.add id activePeer state.Peers }
+        let newState =
+            { state with
+                Peers = Map.add id activePeer state.Peers }
 
         if PieceStore.countSet state.Bitfield > 0 then
             peer.Post(SendMsg(Bitfield state.Bitfield))
@@ -256,7 +258,10 @@ let private handleCompletion (ctx: TorrentContext) (state: AgentState) (inbox: M
             ctx.Repository.UpdateStatusAsync(ctx.TorrentId, toStorageStatus TorrentStatus.Seeding)
             |> Async.AwaitTask
 
-        let updatedState = { state with Status = TorrentStatus.Seeding }
+        let updatedState =
+            { state with
+                Status = TorrentStatus.Seeding }
+
         fireAnnounce ctx updatedState inbox Completed
 
         if not state.Settings.SeedingEnabled then
@@ -313,7 +318,9 @@ let private handleBlockReceived
                 let blockIdx = offset / blockSize
                 ps.Blocks[blockIdx] <- Received
 
-                let updatedPeer = { peer with Pending = max 0 (peer.Pending - 1) }
+                let updatedPeer =
+                    { peer with
+                        Pending = max 0 (peer.Pending - 1) }
 
                 let updatedState =
                     { state with
@@ -347,7 +354,14 @@ let private handleBlockReceived
                     return dispatchRequests id updatedState
     }
 
-let private handleInboundRequest (ctx: TorrentContext) (state: AgentState) (peerId: byte[]) (pieceIdx: int) (offset: int) (len: int) =
+let private handleInboundRequest
+    (ctx: TorrentContext)
+    (state: AgentState)
+    (peerId: byte[])
+    (pieceIdx: int)
+    (offset: int)
+    (len: int)
+    =
     if state.Settings.SeedingEnabled && PieceStore.getBit state.Bitfield pieceIdx then
         let id = toHex peerId
 
@@ -570,7 +584,10 @@ let create
 
                     | TrackerTick ->
                         if DateTime.UtcNow >= state.NextAnnounce then
-                            let newState = { state with NextAnnounce = DateTime.UtcNow.AddSeconds(float state.AnnounceInterval) }
+                            let newState =
+                                { state with
+                                    NextAnnounce = DateTime.UtcNow.AddSeconds(float state.AnnounceInterval) }
+
                             fireAnnounce ctx newState inbox AnnounceEvent.None
                             return! loop newState
                         else
@@ -595,7 +612,11 @@ let create
 
                     | TrackerResult(Error e) ->
                         dbg ctx.TorrentId $"Tracker error: %A{e} — retry in 30s"
-                        let newState = { state with NextAnnounce = DateTime.UtcNow.AddSeconds 30.0 }
+
+                        let newState =
+                            { state with
+                                NextAnnounce = DateTime.UtcNow.AddSeconds 30.0 }
+
                         return! loop newState
 
                     // peer connections
@@ -615,7 +636,7 @@ let create
                                     let peerIdRef = ref [||]
                                     let notify ev = inbox.Post(FromPeer(!peerIdRef, ev))
 
-                                    let! result = PeerAgent.create client infoHashBytes ctx.OurPeerId notify
+                                    let! result = create client infoHashBytes ctx.OurPeerId notify
 
                                     match result with
                                     | Ok(peer, startRead) ->
@@ -632,6 +653,7 @@ let create
                                     dbg ctx.TorrentId $"Connect failed: %s{ex.Message}"
                             }
                         )
+
                         return! loop state
 
                     | PeerReady(peerObj, startRead) ->
@@ -642,7 +664,9 @@ let create
                         return! loop newState
 
                     | InboundPeer(client, peerId) ->
-                        let peer, startRead = PeerAgent.createInbound client peerId (fun ev -> inbox.Post(FromPeer(peerId, ev)))
+                        let peer, startRead =
+                            createInbound client peerId (fun ev -> inbox.Post(FromPeer(peerId, ev)))
+
                         let newState = registerPeer ctx state peer
                         startRead ()
                         return! loop newState
@@ -672,18 +696,29 @@ let create
                                 if hasNeeded then
                                     let state' =
                                         if not peer.State.AmInterested then
-                                            let p' = { updatedPeer with State = { updatedPeer.State with AmInterested = true } }
+                                            let p' =
+                                                { updatedPeer with
+                                                    State =
+                                                        { updatedPeer.State with
+                                                            AmInterested = true } }
+
                                             p'.Agent.Post(SendMsg Interested)
-                                            { state with Peers = Map.add id p' state.Peers }
+
+                                            { state with
+                                                Peers = Map.add id p' state.Peers }
                                         else
-                                            { state with Peers = Map.add id updatedPeer state.Peers }
+                                            { state with
+                                                Peers = Map.add id updatedPeer state.Peers }
 
                                     if not peer.State.PeerChoking then
                                         return! loop (dispatchRequests id state')
                                     else
                                         return! loop state'
                                 else
-                                    return! loop { state with Peers = Map.add id updatedPeer state.Peers }
+                                    return!
+                                        loop
+                                            { state with
+                                                Peers = Map.add id updatedPeer state.Peers }
 
                         | PeerHasPiece idx ->
                             match Map.tryFind id state.Peers with
@@ -696,18 +731,29 @@ let create
                                 if Map.containsKey idx state.PieceStates then
                                     let state' =
                                         if not peer.State.AmInterested then
-                                            let p' = { updatedPeer with State = { updatedPeer.State with AmInterested = true } }
+                                            let p' =
+                                                { updatedPeer with
+                                                    State =
+                                                        { updatedPeer.State with
+                                                            AmInterested = true } }
+
                                             p'.Agent.Post(SendMsg Interested)
-                                            { state with Peers = Map.add id p' state.Peers }
+
+                                            { state with
+                                                Peers = Map.add id p' state.Peers }
                                         else
-                                            { state with Peers = Map.add id updatedPeer state.Peers }
+                                            { state with
+                                                Peers = Map.add id updatedPeer state.Peers }
 
                                     if not peer.State.PeerChoking then
                                         return! loop (dispatchRequests id state')
                                     else
                                         return! loop state'
                                 else
-                                    return! loop { state with Peers = Map.add id updatedPeer state.Peers }
+                                    return!
+                                        loop
+                                            { state with
+                                                Peers = Map.add id updatedPeer state.Peers }
 
                         | PeerUnchoked ->
                             match Map.tryFind id state.Peers with
@@ -716,16 +762,30 @@ let create
                                 return! loop state
                             | Some peer ->
                                 dbg ctx.TorrentId $"Peer %s{id[..7]} unchoked us"
-                                let updatedPeer = { peer with State = { peer.State with PeerChoking = false } }
-                                let newState = { state with Peers = Map.add id updatedPeer state.Peers }
+
+                                let updatedPeer =
+                                    { peer with
+                                        State = { peer.State with PeerChoking = false } }
+
+                                let newState =
+                                    { state with
+                                        Peers = Map.add id updatedPeer state.Peers }
+
                                 return! loop (dispatchRequests id newState)
 
                         | PeerChoked ->
                             match Map.tryFind id state.Peers with
                             | Option.None -> return! loop state
                             | Some peer ->
-                                let updatedPeer = { peer with State = { peer.State with PeerChoking = true }; Pending = 0 }
-                                let newState = { state with Peers = Map.add id updatedPeer state.Peers }
+                                let updatedPeer =
+                                    { peer with
+                                        State = { peer.State with PeerChoking = true }
+                                        Pending = 0 }
+
+                                let newState =
+                                    { state with
+                                        Peers = Map.add id updatedPeer state.Peers }
+
                                 resetInFlight newState peerId
                                 return! loop newState
 
@@ -740,12 +800,16 @@ let create
                         | Disconnected _ ->
                             state.Peers |> Map.tryFind id |> Option.iter (fun p -> p.Agent.Dispose())
 
-                            let newState = { state with Peers = Map.remove id state.Peers }
+                            let newState =
+                                { state with
+                                    Peers = Map.remove id state.Peers }
+
                             resetInFlight newState peerId
 
                             let newState' =
                                 if Map.isEmpty newState.Peers && newState.Status = TorrentStatus.Downloading then
-                                    { newState with NextAnnounce = DateTime.UtcNow }
+                                    { newState with
+                                        NextAnnounce = DateTime.UtcNow }
                                 else
                                     newState
 
@@ -771,7 +835,8 @@ let create
                             { state with
                                 Bitfield = updatedBitfield
                                 PieceStates = Map.remove pieceIdx state.PieceStates
-                                TotalDownloaded = state.TotalDownloaded + int64 (PieceStore.actualPieceLength ctx.Meta pieceIdx) }
+                                TotalDownloaded =
+                                    state.TotalDownloaded + int64 (PieceStore.actualPieceLength ctx.Meta pieceIdx) }
 
                         for _, peer in Map.toSeq updatedState.Peers do
                             peer.Agent.Post(SendMsg(Have pieceIdx))
@@ -781,8 +846,10 @@ let create
                             return! loop finalState
                         else
                             let mutable state' = updatedState
+
                             for id in updatedState.Peers |> Map.toSeq |> Seq.map fst do
                                 state' <- dispatchRequests id state'
+
                             return! loop state'
 
                     | PieceVerified(pieceIdx, false) ->
@@ -793,7 +860,11 @@ let create
                         | Some ps ->
                             let newBlocks = Array.copy ps.Blocks
                             Array.fill newBlocks 0 newBlocks.Length Missing
-                            let newState = { state with PieceStates = Map.add pieceIdx { ps with Blocks = newBlocks } state.PieceStates }
+
+                            let newState =
+                                { state with
+                                    PieceStates = Map.add pieceIdx { ps with Blocks = newBlocks } state.PieceStates }
+
                             return! loop newState
 
                     | SettingsUpdated newSettings -> return! loop { state with Settings = newSettings }
@@ -817,7 +888,11 @@ let create
 
                             ctx.Notify(EngineEvent.GlobalStatsUpdate(totalDl, totalUl))
 
-                            return! loop { state with SessionDownloaded = 0L; SessionUploaded = 0L }
+                            return!
+                                loop
+                                    { state with
+                                        SessionDownloaded = 0L
+                                        SessionUploaded = 0L }
                         else
                             return! loop state
                 }
