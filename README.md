@@ -57,8 +57,8 @@ The main view shows a `CollectionView` of `TorrentItemViewModel`s updated once p
 
 ### Downpour.Console (C#)
 
-Simple lightweight app for testing functionality, replaced by `Downpour.App
-`
+Simple lightweight app for testing functionality, replaced by `Downpour.App`
+
 ### Downpour.Engine (F#)
 
 Orchestrates everything. `Engine` owns one `EngineAgent` MailboxProcessor that serializes all top-level commands (add, remove, pause, resume, settings, incoming TCP). Each active torrent gets its own `TorrentAgent` MailboxProcessor that manages the download state machine: piece verification on start, HTTP/UDP tracker announcements, peer slot management, block pipelining, SHA-1 piece verification, and seeding after completion. `PeerAgent` handles a single TCP peer connection. `PieceStore` handles on-disk block reads, writes, and bitfield management. Progress and status changes are broadcast via `IObservable<EngineEvent>`. Download and upload speeds can be throttled via `EngineSettings`.
