@@ -187,6 +187,7 @@ let private dispatchRequests (peerId: string) (state: AgentState) =
                 | Some(pieceIdx, blockIdx, blockOffset, blockLen) ->
                     let dlLimit = state.Settings.MaxDownloadSpeedKbps
                     let dlBudget = int64 dlLimit * 1024L
+
                     if dlLimit > 0 && state.RequestedThisTick + int64 blockLen > dlBudget then
                         stop <- true
                     else
@@ -299,7 +300,7 @@ let private handleBlockReceived
                 ps.Blocks[blockIdx] <- Received
                 peer.Pending <- max 0 (peer.Pending - 1)
                 state.DownloadedThisTick <- state.DownloadedThisTick + int64 data.Length
-                state.SessionDownloaded  <- state.SessionDownloaded  + int64 data.Length
+                state.SessionDownloaded <- state.SessionDownloaded + int64 data.Length
                 dbg ctx.TorrentId $"Block piece=%d{pieceIdx} offset=%d{offset} len=%d{data.Length}"
 
                 if ps.Blocks |> Array.forall (fun b -> b = Received) then
@@ -384,7 +385,7 @@ let create
           SessionUploaded = 0L
           TotalDownloaded =
             [ 0 .. meta.Info.Pieces.Length - 1 ]
-            |> List.filter (fun i -> PieceStore.getBit initialBitfield i)
+            |> List.filter (PieceStore.getBit initialBitfield)
             |> List.sumBy (fun i -> int64 (PieceStore.actualPieceLength meta i))
           TotalUploaded = 0L
           LastDownloadSpeedBps = 0L
@@ -642,8 +643,8 @@ let create
                                         }
                                     )
 
-                                    state.UploadedThisTick  <- state.UploadedThisTick  + int64 len
-                                    state.SessionUploaded   <- state.SessionUploaded   + int64 len
+                                    state.UploadedThisTick <- state.UploadedThisTick + int64 len
+                                    state.SessionUploaded <- state.SessionUploaded + int64 len
 
                     | FromPeer(peerId, Disconnected _) ->
                         let id = toHex peerId
@@ -698,10 +699,12 @@ let create
                             let dl = state.SessionDownloaded
                             let ul = state.SessionUploaded
                             state.SessionDownloaded <- 0L
-                            state.SessionUploaded   <- 0L
+                            state.SessionUploaded <- 0L
+
                             let! struct (totalDl, totalUl) =
                                 ctx.Repository.IncrementTransferStatsAsync(ctx.TorrentId, ul, dl)
                                 |> Async.AwaitTask
+
                             ctx.Notify(EngineEvent.GlobalStatsUpdate(totalDl, totalUl))
 
                     return! loop ()
