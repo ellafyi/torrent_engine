@@ -26,7 +26,7 @@ type TorrentCommand =
     | Resume
     | ConnectToPeer of Downpour.Tracker.PeerInfo
     | InboundPeer of client: System.Net.Sockets.TcpClient * peerId: byte[]
-    | PeerReady of (unit -> unit) // registers a connected peer and starts its read loop
+    | PeerReady of peer: obj * startRead: (unit -> unit)
     | FromPeer of peerId: byte[] * PeerEvent
     | TrackerTick // check if re-announce is due
     | ProgressTick // compute and emit speed and progress

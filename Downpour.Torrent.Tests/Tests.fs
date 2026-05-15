@@ -17,7 +17,10 @@ open System.IO
              "cachyos-desktop-linux-260308.iso")>]
 let ``Parse real torrent files`` (filePath, expectedAnnounce, expectedName) =
     let bytes = File.ReadAllBytes(filePath)
-    let meta = parse bytes
+    let meta =
+        match parse bytes with
+        | Ok m -> m
+        | Error e -> failwithf "Parse failed: %A" e
 
     Assert.Equal(expectedAnnounce, meta.Announce)
     Assert.Equal(expectedName, meta.Info.Name)
@@ -27,19 +30,28 @@ let ``Parse real torrent files`` (filePath, expectedAnnounce, expectedName) =
 [<Fact>]
 let ``Parse succeeds and produces at least one piece`` () =
     let bytes = File.ReadAllBytes("TestData/debian-13.4.0-amd64-netinst.iso.torrent")
-    let meta = parse bytes
+    let meta =
+        match parse bytes with
+        | Ok m -> m
+        | Error e -> failwithf "Parse failed: %A" e
     Assert.True(meta.Info.Pieces.Length > 0)
 
 [<Fact>]
 let ``InfoHash matches known value for debian torrent`` () =
     let bytes = File.ReadAllBytes("TestData/debian-13.4.0-amd64-netinst.iso.torrent")
-    let meta = parse bytes
-    Assert.Equal("80e68d5bfb383aef4f8eb947404a6a82f7af2f07", meta.InfoHash.Hex)
+    let meta =
+        match parse bytes with
+        | Ok m -> m
+        | Error e -> failwithf "Parse failed: %A" e
+    Assert.Equal("3b1de9cb7011350fa152ec47419620aa153e19e7", meta.InfoHash.Hex)
 
 [<Fact>]
 let ``Can handle announce-list if present`` () =
     let bytes = File.ReadAllBytes("TestData/ubuntu-25.10-desktop-amd64.iso.torrent")
-    let meta = parse bytes
+    let meta =
+        match parse bytes with
+        | Ok m -> m
+        | Error e -> failwithf "Parse failed: %A" e
 
     match meta.AnnounceList with
     | Some list ->

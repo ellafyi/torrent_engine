@@ -17,12 +17,12 @@ type private EngineContext =
       Notify: EngineEvent -> unit }
 
 type private EngineState =
-    { mutable Torrents: Map<int, TorrentAgent>
-      mutable LatestProgress: Map<int, TorrentProgress>
-      mutable SavePaths: Map<int, string>
-      mutable Settings: EngineSettings
-      mutable Listener: TcpListener option
-      mutable ListenerCts: Threading.CancellationTokenSource option
+    { Torrents: Map<int, TorrentAgent>
+      LatestProgress: Map<int, TorrentProgress>
+      SavePaths: Map<int, string>
+      Settings: EngineSettings
+      Listener: TcpListener option
+      ListenerCts: Threading.CancellationTokenSource option
       OurPeerId: byte[] }
 
 // helpers
@@ -52,7 +52,7 @@ let private readExactly (stream: NetworkStream) (buf: byte[]) (count: int) (ct: 
                 |> Async.AwaitTask
 
             if n = 0 then
-                failwith "connection closed"
+                raise (System.IO.EndOfStreamException "connection closed")
 
             total <- total + n
     }
@@ -85,8 +85,10 @@ let private stopListener (state: EngineState) =
         cts.Dispose())
 
     state.Listener |> Option.iter _.Stop()
-    state.Listener <- None
-    state.ListenerCts <- None
+
+    { state with
+        Listener = None
+        ListenerCts = None }
 
 // initialization
 
@@ -106,10 +108,8 @@ let private initializeTorrents
         let mutable initialProgress = Map.empty
 
         for t in stored do
-            try
-                let fileData = t.TorrentFileData |> Option.ofObj |> Option.get
-                let meta = Parser.parse fileData
-
+            match t.TorrentFileData |> Option.ofObj |> Option.map Parser.parse with
+            | Some(Ok meta) ->
                 let bitfield =
                     t.PieceBitfield
                     |> Option.ofObj
@@ -151,8 +151,8 @@ let private initializeTorrents
                 torrents <- Map.add t.Id agent torrents
                 savePaths <- Map.add t.Id t.SavePath savePaths
                 initialProgress <- Map.add t.Id progress initialProgress
-            with _ ->
-                ()
+            | Some(Error e) -> eprintfn "[Engine] Failed to parse stored torrent %d: %s" t.Id e
+            | None -> ()
 
         return torrents, savePaths, initialProgress
     }
@@ -168,14 +168,19 @@ let private handleAddTorrent
     (reply: AsyncReplyChannel<Result<int, string>>)
     =
     async {
-        try
-            let meta = Parser.parse bytes
+        match Parser.parse bytes with
+        | Error e ->
+            reply.Reply(Error e)
+            return state
+        | Ok meta ->
             let (InfoHash infoHashBytes) = meta.InfoHash
             let infoHex = toHex infoHashBytes
             let! existing = ctx.Repository.GetByInfoHashAsync(infoHex) |> Async.AwaitTask
 
             match existing |> Option.ofObj with
-            | Some _ -> reply.Reply(Error "already added")
+            | Some _ ->
+                reply.Reply(Error "already added")
+                return state
             | None ->
                 let fullSavePath = Path.Combine(savePath, meta.Info.Name)
                 let torrent =
@@ -208,12 +213,12 @@ let private handleAddTorrent
 
                 agent.Post Start
 
-                state.Torrents <- Map.add torrent.Id agent state.Torrents
-                state.SavePaths <- Map.add torrent.Id fullSavePath state.SavePaths
                 reply.Reply(Ok torrent.Id)
                 ctx.Notify(EngineEvent.TorrentAdded torrent.Id)
-        with ex ->
-            reply.Reply(Error ex.Message)
+
+                return { state with
+                            Torrents = Map.add torrent.Id agent state.Torrents
+                            SavePaths = Map.add torrent.Id fullSavePath state.SavePaths }
     }
 
 let private handleRemoveTorrent
@@ -225,15 +230,14 @@ let private handleRemoveTorrent
     =
     async {
         match Map.tryFind torrentId state.Torrents with
-        | None -> reply.Reply(())
+        | None ->
+            reply.Reply(())
+            return state
         | Some agent ->
             agent.Post Pause
             agent.Dispose()
-            state.Torrents <- Map.remove torrentId state.Torrents
-            state.LatestProgress <- Map.remove torrentId state.LatestProgress
 
             let savePath = Map.tryFind torrentId state.SavePaths
-            state.SavePaths <- Map.remove torrentId state.SavePaths
 
             do! ctx.Repository.DeleteTorrentAsync(torrentId) |> Async.AwaitTask
 
@@ -245,13 +249,17 @@ let private handleRemoveTorrent
 
             ctx.Notify(EngineEvent.TorrentRemoved torrentId)
             reply.Reply(())
+
+            return { state with
+                        Torrents = Map.remove torrentId state.Torrents
+                        LatestProgress = Map.remove torrentId state.LatestProgress
+                        SavePaths = Map.remove torrentId state.SavePaths }
     }
 
 // Reads the inbound peer's handshake in a background async (5-second timeout),
 // looks up the matching torrent, replies with our handshake, and routes the
 // connection to the correct TorrentAgent.
 let private handleIncomingConn (ctx: EngineContext) (state: EngineState) (client: TcpClient) =
-    // immutable values, the background async must not read mutable state.
     let torrents = state.Torrents
     let ourPeerId = state.OurPeerId
 
@@ -295,18 +303,19 @@ let private handleUpdateSettings
     (newSettings: EngineSettings)
     (reply: AsyncReplyChannel<unit>)
     =
-    if newSettings.ListenPort <> state.Settings.ListenPort then
-        stopListener state
-        let l, cts = startListener inbox newSettings.ListenPort
-        state.Listener <- Some l
-        state.ListenerCts <- Some cts
+    let state' =
+        if newSettings.ListenPort <> state.Settings.ListenPort then
+            let s = stopListener state
+            let l, cts = startListener inbox newSettings.ListenPort
+            { s with Listener = Some l; ListenerCts = Some cts }
+        else
+            state
 
-    state.Settings <- newSettings
-
-    for _, agent in Map.toSeq state.Torrents do
+    for _, agent in Map.toSeq state'.Torrents do
         agent.Post(SettingsUpdated newSettings)
 
     reply.Reply(())
+    { state' with Settings = newSettings }
 
 let private handleClearDatabase
     (ctx: EngineContext)
@@ -318,13 +327,14 @@ let private handleClearDatabase
             agent.Post Pause
             agent.Dispose()
 
-        state.Torrents <- Map.empty
-        state.SavePaths <- Map.empty
-        state.LatestProgress <- Map.empty
-
         do! ctx.Repository.ClearAllAsync() |> Async.AwaitTask
         ctx.Notify(EngineEvent.DatabaseCleared)
         reply.Reply(())
+
+        return { state with
+                    Torrents = Map.empty
+                    SavePaths = Map.empty
+                    LatestProgress = Map.empty }
     }
 
 let private handleStop (state: EngineState) (reply: AsyncReplyChannel<unit>) =
@@ -332,9 +342,9 @@ let private handleStop (state: EngineState) (reply: AsyncReplyChannel<unit>) =
         agent.Post Pause
         agent.Dispose()
 
-    state.Torrents <- Map.empty
-    stopListener state
+    let s = stopListener state
     reply.Reply(())
+    { s with Torrents = Map.empty }
 
 let start
     (repository: TorrentRepository)
@@ -352,23 +362,21 @@ let start
                     let ourPeerId = generatePeerId ()
                     let! torrents, savePaths, initialProgress = initializeTorrents ctx ourPeerId settings inbox
 
+                    let l, cts = startListener inbox settings.ListenPort
+
                     let state =
                         { Torrents = torrents
                           LatestProgress = initialProgress
                           SavePaths = savePaths
                           Settings = settings
-                          Listener = Option.None
-                          ListenerCts = Option.None
+                          Listener = Some l
+                          ListenerCts = Some cts
                           OurPeerId = ourPeerId }
-
-                    let l, cts = startListener inbox settings.ListenPort
-                    state.Listener <- Some l
-                    state.ListenerCts <- Some cts
 
                     let! struct (gsDl, gsUl) = ctx.Repository.GetGlobalStatsAsync() |> Async.AwaitTask
                     ctx.Notify(EngineEvent.GlobalStatsUpdate(gsDl, gsUl))
 
-                    let rec loop () =
+                    let rec loop state =
                         async {
                             let! msg = inbox.Receive()
 
@@ -377,49 +385,64 @@ let start
                             // torrent management
 
                             | AddTorrent(bytes, savePath, reply) ->
-                                do! handleAddTorrent ctx state inbox bytes savePath reply
+                                let! newState = handleAddTorrent ctx state inbox bytes savePath reply
+                                return! loop newState
 
                             | RemoveTorrent(torrentId, deleteFiles, reply) ->
-                                do! handleRemoveTorrent ctx state torrentId deleteFiles reply
+                                let! newState = handleRemoveTorrent ctx state torrentId deleteFiles reply
+                                return! loop newState
 
                             | PauseTorrent(torrentId, reply) ->
                                 state.Torrents |> Map.tryFind torrentId |> Option.iter (fun a -> a.Post Pause)
                                 do! ctx.Repository.UpdateStatusAsync(torrentId, Downpour.Storage.Models.TorrentStatus.Paused) |> Async.AwaitTask
                                 reply.Reply(())
+                                return! loop state
 
                             | ResumeTorrent(torrentId, reply) ->
                                 state.Torrents |> Map.tryFind torrentId |> Option.iter (fun a -> a.Post Resume)
                                 do! ctx.Repository.UpdateStatusAsync(torrentId, Downpour.Storage.Models.TorrentStatus.Downloading) |> Async.AwaitTask
                                 reply.Reply(())
+                                return! loop state
 
                             // inbound TCP
 
-                            | IncomingConn client -> handleIncomingConn ctx state client
+                            | IncomingConn client ->
+                                handleIncomingConn ctx state client
+                                return! loop state
 
                             // event forwarding
 
                             | TorrentEvent(_, EngineEvent.Progress p) ->
-                                state.LatestProgress <- Map.add p.TorrentId p state.LatestProgress
+                                let newState = { state with LatestProgress = Map.add p.TorrentId p state.LatestProgress }
                                 ctx.Notify(EngineEvent.Progress p)
+                                return! loop newState
 
-                            | TorrentEvent(_, ev) -> ctx.Notify ev
+                            | TorrentEvent(_, ev) ->
+                                ctx.Notify ev
+                                return! loop state
 
                             // settings
 
-                            | UpdateSettings(newSettings, reply) -> handleUpdateSettings state inbox newSettings reply
+                            | UpdateSettings(newSettings, reply) ->
+                                let newState = handleUpdateSettings state inbox newSettings reply
+                                return! loop newState
 
                             // query / shutdown
 
-                            | GetAllProgress reply -> reply.Reply(state.LatestProgress |> Map.toList |> List.map snd)
+                            | GetAllProgress reply ->
+                                reply.Reply(state.LatestProgress |> Map.toList |> List.map snd)
+                                return! loop state
 
-                            | ClearDatabase reply -> do! handleClearDatabase ctx state reply
+                            | ClearDatabase reply ->
+                                let! newState = handleClearDatabase ctx state reply
+                                return! loop newState
 
-                            | Stop reply -> handleStop state reply
-
-                            return! loop ()
+                            | Stop reply ->
+                                let _ = handleStop state reply
+                                return ()
                         }
 
-                    return! loop ()
+                    return! loop state
                 })
 
         return agent

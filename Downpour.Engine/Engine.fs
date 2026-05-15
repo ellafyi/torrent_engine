@@ -37,7 +37,10 @@ type Engine(initialSettings: EngineSettings) =
     let subject = new System.Reactive.Subjects.Subject<EngineEvent>()
     let mutable agentOpt: MailboxProcessor<EngineCommand> option = Option.None
 
-    let agent () = agentOpt.Value
+    let agent () =
+        match agentOpt with
+        | Some a -> a
+        | None -> invalidOp "Engine not started"
     let postAndAwait f = (agent ()).PostAndAsyncReply f |> Async.StartAsTask
 
     interface IEngine with

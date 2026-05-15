@@ -1,4 +1,4 @@
-﻿module Downpour.Torrent.Parser
+module Downpour.Torrent.Parser
 
 open System
 open System.Security.Cryptography
@@ -9,115 +9,218 @@ let private toKey (s: string) = Text.Encoding.UTF8.GetBytes(s)
 
 let private asString =
     function
-    | BencodeValue.String b -> Text.Encoding.UTF8.GetString(b)
-    | v -> failwith $"Expected string, got {v}"
+    | BencodeValue.String b -> Ok(Text.Encoding.UTF8.GetString(b))
+    | v -> Error $"Expected string, got {v}"
 
 let private asInt =
     function
-    | BencodeValue.Integer i -> i
-    | v -> failwith $"Expected integer, got {v}"
+    | BencodeValue.Integer i -> Ok i
+    | v -> Error $"Expected integer, got {v}"
 
 let private dictGet (key: string) =
     function
-    | BencodeValue.Dictionary m -> Map.tryFind (toKey key) m
-    | v -> failwith $"Expected dictionary, got {v}"
+    | BencodeValue.Dictionary m -> Ok(Map.tryFind (toKey key) m)
+    | v -> Error $"Expected dictionary, got {v}"
 
 let private dictGetReq key dict =
-    dictGet key dict
-    |> Option.defaultWith (fun () -> failwith $"Missing required key: {key}")
+    match dictGet key dict with
+    | Ok(Some v) -> Ok v
+    | Ok None -> Error $"Missing required key: {key}"
+    | Error e -> Error e
 
 
-let hash (pcsBytes: byte[]) : Sha1Hash list =
+type ResultBuilder() =
+    member _.Return(x) = Ok x
+    member _.ReturnFrom(x) = x
+    member _.Bind(x, f) = Result.bind f x
+
+let result = ResultBuilder()
+
+let hash (pcsBytes: byte[]) : Result<Sha1Hash list, string> =
     if pcsBytes.Length % 20 <> 0 then
-        failwith $"Expected byte length divisible by 20"
+        Error $"Expected byte length divisible by 20, got {pcsBytes.Length}"
+    else
+        pcsBytes |> Array.chunkBySize 20 |> Array.map Sha1Hash |> Array.toList |> Ok
 
-    pcsBytes |> Array.chunkBySize 20 |> Array.map Sha1Hash |> Array.toList
+let private parsePieces (infoDict: BencodeValue) : Result<Sha1Hash list, string> =
+    match dictGetReq "pieces" infoDict with
+    | Ok(BencodeValue.String b) -> hash b
+    | Ok v -> Error $"Expected string for pieces, got {v}"
+    | Error e -> Error e
 
-// pieces
-let private parsePieces (infoDict: BencodeValue) : Sha1Hash list =
-    dictGetReq "pieces" infoDict
-    |> (function
-    | BencodeValue.String b -> b
-    | v -> failwith $"Expected string for pieces, got {v}")
-    |> hash
+let private parseSingleFile (infoDict: BencodeValue) : Result<FileLayout, string> =
+    result {
+        let! lengthVal = dictGetReq "length" infoDict
+        let! length = asInt lengthVal
 
-/// file handling
-let private parseSingleFile (infoDict: BencodeValue) : FileLayout =
-    let length = dictGetReq "length" infoDict |> asInt
-    let md5sum = dictGet "md5sum" infoDict |> Option.map asString
-    SingleFile(length, md5sum)
+        let! md5sum =
+            match dictGet "md5sum" infoDict with
+            | Ok(Some v) -> asString v |> Result.map Some
+            | Ok None -> Ok None
+            | Error e -> Error e
 
-let private parseMultiFile (infoDict: BencodeValue) : FileLayout =
-    let files =
-        match dictGetReq "files" infoDict with
-        | BencodeValue.List entries ->
-            entries
-            |> List.map (fun entry ->
-                let length = dictGetReq "length" entry |> asInt
+        return SingleFile(length, md5sum)
+    }
 
-                let path =
-                    match dictGetReq "path" entry with
-                    | BencodeValue.List segments -> segments |> List.map asString
-                    | v -> failwith $"Expected list for path, got {v}"
+let private parseMultiFile (infoDict: BencodeValue) : Result<FileLayout, string> =
+    result {
+        let! filesVal = dictGetReq "files" infoDict
 
-                let md5sum = dictGet "md5sum" entry |> Option.map asString
+        let! entries =
+            match filesVal with
+            | BencodeValue.List l -> Ok l
+            | v -> Error $"Expected list for files, got {v}"
 
-                { Length = length
-                  Path = path
-                  Md5Sum = md5sum })
-        | v -> failwith $"Expected list for files, got {v}"
+        let rec loop acc items =
+            match items with
+            | [] -> Ok(List.rev acc)
+            | h :: t ->
+                let res =
+                    result {
+                        let! lengthVal = dictGetReq "length" h
+                        let! length = asInt lengthVal
 
-    MultiFile files
+                        let! pathVal = dictGetReq "path" h
 
-let private parseFileLayout (infoDict: BencodeValue) : FileLayout =
+                        let! segments =
+                            match pathVal with
+                            | BencodeValue.List s -> Ok s
+                            | v -> Error $"Expected list for path, got {v}"
+
+                        let rec loopSegments accS itemsS =
+                            match itemsS with
+                            | [] -> Ok(List.rev accS)
+                            | hs :: ts ->
+                                match asString hs with
+                                | Ok s -> loopSegments (s :: accS) ts
+                                | Error e -> Error e
+
+                        let! path = loopSegments [] segments
+
+                        let! md5sum =
+                            match dictGet "md5sum" h with
+                            | Ok(Some v) -> asString v |> Result.map Some
+                            | Ok None -> Ok None
+                            | Error e -> Error e
+
+                        return
+                            { Length = length
+                              Path = path
+                              Md5Sum = md5sum }
+                    }
+
+                match res with
+                | Ok f -> loop (f :: acc) t
+                | Error e -> Error e
+
+        let! parsedFiles = loop [] entries
+        return MultiFile parsedFiles
+    }
+
+let private parseFileLayout (infoDict: BencodeValue) : Result<FileLayout, string> =
     match dictGet "length" infoDict with
-    | Some _ -> parseSingleFile infoDict
-    | None -> parseMultiFile infoDict
+    | Ok(Some _) -> parseSingleFile infoDict
+    | Ok None -> parseMultiFile infoDict
+    | Error e -> Error e
 
-/// info
-let private parseInfo (infoDict: BencodeValue) : InfoDict =
-    { Name = dictGetReq "name" infoDict |> asString
-      PieceLength = dictGetReq "piece length" infoDict |> asInt
-      Pieces = parsePieces infoDict
-      FileLayout = parseFileLayout infoDict
-      Private =
-        dictGet "private" infoDict
-        |> Option.map asInt
-        |> Option.map (fun i -> i = 1L)
-        |> Option.defaultValue false }
+let private parseInfo (infoDict: BencodeValue) : Result<InfoDict, string> =
+    result {
+        let! nameVal = dictGetReq "name" infoDict
+        let! name = asString nameVal
+        let! pieceLengthVal = dictGetReq "piece length" infoDict
+        let! pieceLength = asInt pieceLengthVal
+        let! pieces = parsePieces infoDict
+        let! fileLayout = parseFileLayout infoDict
 
-// info hash: raw bytes from the original file, not re-encoded bytes
-let private computeInfoHash (rawBytes: byte[]) : InfoHash =
+        let! priv =
+            match dictGet "private" infoDict with
+            | Ok(Some v) ->
+                asInt v
+                |> Result.map (fun i -> i = 1L)
+                |> Result.map Some
+            | Ok None -> Ok None
+            | Error e -> Error e
+
+        return
+            { Name = name
+              PieceLength = pieceLength
+              Pieces = pieces
+              FileLayout = fileLayout
+              Private = priv |> Option.defaultValue false }
+    }
+
+let private computeInfoHash (rawBytes: byte[]) : Result<InfoHash, string> =
     match Downpour.Bencode.Decoder.findDictValueBytes "info" rawBytes with
-    | Some infoBytes -> SHA1.HashData(infoBytes) |> InfoHash
-    | None -> failwith "Missing info dictionary"
+    | Some infoBytes -> SHA1.HashData(infoBytes) |> InfoHash |> Ok
+    | None -> Error "Missing info dictionary"
 
-// announce list
-let private parseAnnounceList (value: BencodeValue option) : string list list option =
-    value
-    |> Option.map (function
-        | BencodeValue.List tiers ->
-            tiers
-            |> List.map (function
-                | BencodeValue.List urls -> urls |> List.map asString
-                | v -> failwith $"Expected list for announce-list tier, got {v}")
-        | v -> failwith $"Expected list for announce-list, got {v}")
+let private parseAnnounceList (value: BencodeValue option) : Result<string list list option, string> =
+    match value with
+    | None -> Ok None
+    | Some(BencodeValue.List tiers) ->
+        let rec loopTiers accT itemsT =
+            match itemsT with
+            | [] -> Ok(Some(List.rev accT))
+            | BencodeValue.List urls :: t ->
+                let rec loopUrls accU itemsU =
+                    match itemsU with
+                    | [] -> Ok(List.rev accU)
+                    | hu :: tu ->
+                        match asString hu with
+                        | Ok s -> loopUrls (s :: accU) tu
+                        | Error e -> Error e
 
-let parse (bytes: byte[]) : TorrentMetaInfo =
-    let root =
-        match Downpour.Bencode.Decoder.decode bytes with
-        | Ok v -> v
-        | Error e -> failwith e
+                match loopUrls [] urls with
+                | Ok u -> loopTiers (u :: accT) t
+                | Error e -> Error e
+            | v :: _ -> Error $"Expected list for announce-list tier, got {v}"
 
-    let infoVal = dictGetReq "info" root
+        loopTiers [] tiers
+    | Some v -> Error $"Expected list for announce-list, got {v}"
 
-    { Announce = dictGetReq "announce" root |> asString
-      AnnounceList = dictGet "announce-list" root |> parseAnnounceList
-      Comment = dictGet "comment" root |> Option.map asString
-      CreatedBy = dictGet "created by" root |> Option.map asString
-      CreationDate =
-        dictGet "creation date" root
-        |> Option.map asInt
-        |> Option.map DateTimeOffset.FromUnixTimeSeconds
-      Info = parseInfo infoVal
-      InfoHash = computeInfoHash bytes }
+let parse (bytes: byte[]) : Result<TorrentMetaInfo, string> =
+    result {
+        let! root = Downpour.Bencode.Decoder.decode bytes
+        let! infoVal = dictGetReq "info" root
+
+        let! announceVal = dictGetReq "announce" root
+        let! announce = asString announceVal
+
+        let! announceListVal = dictGet "announce-list" root
+        let! announceList = parseAnnounceList announceListVal
+
+        let! commentVal = dictGet "comment" root
+
+        let! comment =
+            match commentVal with
+            | Some v -> asString v |> Result.map Some
+            | None -> Ok None
+
+        let! createdByVal = dictGet "created by" root
+
+        let! createdBy =
+            match createdByVal with
+            | Some v -> asString v |> Result.map Some
+            | None -> Ok None
+
+        let! creationDateVal = dictGet "creation date" root
+
+        let! creationDate =
+            match creationDateVal with
+            | Some v ->
+                asInt v
+                |> Result.map (fun i -> DateTimeOffset.FromUnixTimeSeconds i |> Some)
+            | None -> Ok None
+
+        let! info = parseInfo infoVal
+        let! infoHash = computeInfoHash bytes
+
+        return
+            { Announce = announce
+              AnnounceList = announceList
+              Comment = comment
+              CreatedBy = createdBy
+              CreationDate = creationDate
+              Info = info
+              InfoHash = infoHash }
+    }
