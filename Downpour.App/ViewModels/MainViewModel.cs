@@ -20,8 +20,9 @@ public partial class MainViewModel : ObservableObject
     private readonly ConcurrentDictionary<int, TorrentProgress> _pendingProgress = new();
     private readonly SettingsService _settingsService;
     private readonly ISpeedHistoryService _speedHistory;
+    private readonly IFileSystemService _fileSystem;
 
-    private string _allTimeStats = "↓ 0 B  ↑ 0 B";
+    private string _allTimeStats = " 0 B   0 B";
     private Timer? _flushTimer;
 
     private IReadOnlyList<long> _globalDownloadHistory = [];
@@ -30,14 +31,15 @@ public partial class MainViewModel : ObservableObject
     private IDisposable? _subscription;
 
     public MainViewModel(IEngine engine, SettingsService settingsService,
-        INavigationService navigation, IDialogService dialog, ISpeedHistoryService speedHistory)
+        INavigationService navigation, IDialogService dialog, ISpeedHistoryService speedHistory, IFileSystemService fileSystem)
     {
         _engine = engine;
         _settingsService = settingsService;
         _navigation = navigation;
         _dialog = dialog;
         _speedHistory = speedHistory;
-        AllTimeStats = "↓ 0 B  ↑ 0 B";
+        _fileSystem = fileSystem;
+        AllTimeStats = " 0 B   0 B";
         RefreshThrottleDisplay();
     }
 
@@ -160,69 +162,82 @@ public partial class MainViewModel : ObservableObject
                 case EngineEvent.Progress { Item: var p }:
                     _pendingProgress[p.TorrentId] = p;
                     break;
-
                 case EngineEvent.StatusChanged sc:
-                    _pendingProgress.TryRemove(sc.torrentId, out _);
-                    var scItem = _allTorrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
-                    if (scItem != null)
-                    {
-                        scItem.UpdateStatus(sc.Item2);
-                        UpdateItemVisibility(scItem);
-                    }
-
-                    if (sc.Item2.IsPaused || sc.Item2 is TorrentStatus.Errored)
-                    {
-                        _currentSpeeds.Remove(sc.torrentId);
-                        if (scItem != null)
-                        {
-                            scItem.DownloadSpeed = "↓ 0 B/s";
-                            scItem.UploadSpeed = "↑ 0 B/s";
-                        }
-
-                        UpdateGlobalSpeedStrings();
-                    }
-
+                    HandleStatusChanged(sc);
                     break;
-
                 case EngineEvent.TorrentRemoved removed:
-                    _pendingProgress.TryRemove(removed.torrentId, out _);
-                    var toRemove = _allTorrents.FirstOrDefault(t => t.TorrentId == removed.torrentId);
-                    if (toRemove != null)
-                    {
-                        if (SelectedTorrent == toRemove) SelectedTorrent = null;
-                        _allTorrents.Remove(toRemove);
-                        Torrents.Remove(toRemove);
-                    }
-
-                    _currentSpeeds.Remove(removed.torrentId);
-                    _speedHistory.RemoveTorrent(removed.torrentId);
-                    UpdateGlobalSpeedStrings();
+                    HandleTorrentRemoved(removed);
                     break;
-
                 case var _ when ev.IsDatabaseCleared:
-                    _pendingProgress.Clear();
-                    _allTorrents.Clear();
-                    Torrents.Clear();
-                    _currentSpeeds.Clear();
-                    SelectedTorrent = null;
-                    UpdateGlobalSpeedStrings();
+                    HandleDatabaseCleared();
                     break;
-
                 case EngineEvent.GlobalStatsUpdate gs:
-                    AllTimeStats = $"↓ {FormatBytes(gs.downloaded)}  ↑ {FormatBytes(gs.uploaded)}";
+                    AllTimeStats = $" {FormatBytes(gs.downloaded)}   {FormatBytes(gs.uploaded)}";
                     break;
-
                 case EngineEvent.Error err:
-                    var errItem = _allTorrents.FirstOrDefault(t => t.TorrentId == err.torrentId);
-                    if (errItem != null)
-                    {
-                        errItem.StatusLabel = "Error: " + err.message;
-                        UpdateItemVisibility(errItem);
-                    }
-
+                    HandleTorrentError(err);
                     break;
             }
         });
+    }
+
+    private void HandleStatusChanged(EngineEvent.StatusChanged sc)
+    {
+        _pendingProgress.TryRemove(sc.torrentId, out _);
+        var scItem = _allTorrents.FirstOrDefault(t => t.TorrentId == sc.torrentId);
+        if (scItem != null)
+        {
+            scItem.UpdateStatus(sc.Item2);
+            UpdateItemVisibility(scItem);
+        }
+
+        if (sc.Item2.IsPaused || sc.Item2 is TorrentStatus.Errored)
+        {
+            _currentSpeeds.Remove(sc.torrentId);
+            if (scItem != null)
+            {
+                scItem.DownloadSpeed = " 0 B/s";
+                scItem.UploadSpeed = " 0 B/s";
+            }
+
+            UpdateGlobalSpeedStrings();
+        }
+    }
+
+    private void HandleTorrentRemoved(EngineEvent.TorrentRemoved removed)
+    {
+        _pendingProgress.TryRemove(removed.torrentId, out _);
+        var toRemove = _allTorrents.FirstOrDefault(t => t.TorrentId == removed.torrentId);
+        if (toRemove != null)
+        {
+            if (SelectedTorrent == toRemove) SelectedTorrent = null;
+            _allTorrents.Remove(toRemove);
+            Torrents.Remove(toRemove);
+        }
+
+        _currentSpeeds.Remove(removed.torrentId);
+        _speedHistory.RemoveTorrent(removed.torrentId);
+        UpdateGlobalSpeedStrings();
+    }
+
+    private void HandleDatabaseCleared()
+    {
+        _pendingProgress.Clear();
+        _allTorrents.Clear();
+        Torrents.Clear();
+        _currentSpeeds.Clear();
+        SelectedTorrent = null;
+        UpdateGlobalSpeedStrings();
+    }
+
+    private void HandleTorrentError(EngineEvent.Error err)
+    {
+        var errItem = _allTorrents.FirstOrDefault(t => t.TorrentId == err.torrentId);
+        if (errItem != null)
+        {
+            errItem.StatusLabel = "Error: " + err.message;
+            UpdateItemVisibility(errItem);
+        }
     }
 
     private void UpdateItemVisibility(TorrentItemViewModel item)
@@ -307,7 +322,7 @@ public partial class MainViewModel : ObservableObject
         foreach (var path in result.TorrentFilePaths)
             try
             {
-                var bytes = await File.ReadAllBytesAsync(path);
+                var bytes = await _fileSystem.ReadAllBytesAsync(path);
                 var torrentId = await _engine.AddTorrentAsync(bytes, result.DownloadPath);
 
                 if (_allTorrents.Any(t => t.TorrentId == torrentId)) continue;

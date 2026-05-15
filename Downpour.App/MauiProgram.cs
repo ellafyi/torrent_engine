@@ -52,6 +52,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<IFilePickerService, FilePickerService>();
+        builder.Services.AddSingleton<IFileSystemService, FileSystemService>();
         builder.Services.AddSingleton<ISpeedHistoryService, SpeedHistoryService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
 

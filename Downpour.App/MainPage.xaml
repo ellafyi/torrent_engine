@@ -86,7 +86,7 @@
                     <DataTemplate x:DataType="vm:TorrentItemViewModel">
                         <Border Margin="0,4"
                                 Padding="16,12"
-                                BackgroundColor="{Binding CardBackgroundColor}"
+                                BackgroundColor="{Binding StatusLabel, Converter={StaticResource StatusToBackgroundColor}}"
                                 Stroke="{AppThemeBinding Light=#1A000000, Dark=#1AFFFFFF}"
                                 StrokeThickness="1">
                             <Border.StrokeShape>
@@ -97,7 +97,7 @@
                                   VerticalOptions="Center">
                                 <Label Grid.Column="0"
                                        Text="{Binding StatusLabel}"
-                                       TextColor="{Binding StatusTextColor}"
+                                       TextColor="{Binding StatusLabel, Converter={StaticResource StatusToTextColor}}"
                                        FontSize="12"
                                        FontAttributes="Bold"
                                        MinimumWidthRequest="88"
@@ -164,7 +164,7 @@
                 <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" LineBreakMode="WordWrap" />
                 
                 <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="12">
-                    <Label Grid.Column="0" Text="{Binding StatusLabel}" TextColor="{Binding StatusTextColor}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" />
+                    <Label Grid.Column="0" Text="{Binding StatusLabel}" TextColor="{Binding StatusLabel, Converter={StaticResource StatusToTextColor}}" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" />
                     <Label Grid.Column="2" Text="{Binding PeerCountText}" FontSize="12" Opacity="0.7" VerticalOptions="Center" />
                 </Grid>
 
