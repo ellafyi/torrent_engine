@@ -134,11 +134,10 @@ let announce (client: HttpClient) (url: string) (req: AnnounceRequest) : Async<R
         let fullUrl = buildUrl url req
 
 #if DEBUG
-        if loggingOn then
-            let infoHex = req.InfoHash |> Array.map (sprintf "%02x") |> String.concat ""
-            log $"[HTTP] Tracker: {url}"
-            log $"[HTTP] InfoHash: {infoHex}"
-            log $"[HTTP] URL: {fullUrl}"
+        let infoHex = req.InfoHash |> Array.map (sprintf "%02x") |> String.concat ""
+        log $"[HTTP] Tracker: {url}"
+        log $"[HTTP] InfoHash: {infoHex}"
+        log $"[HTTP] URL: {fullUrl}"
 #endif
 
         try

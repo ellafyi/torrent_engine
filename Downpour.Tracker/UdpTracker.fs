@@ -30,19 +30,6 @@ let private writeUInt16BE (value: uint16) =
     buf
 // end helpers
 
-let private parseCompactPeers (bytes: byte[]) : Result<PeerInfo list, TrackerError> =
-    if bytes.Length % 6 <> 0 then
-        Error(ParseError $"Compact peer list length {bytes.Length} is not a multiple of 6")
-    else
-        bytes
-        |> Array.chunkBySize 6
-        |> Array.map (fun chunk ->
-            let ip = IPAddress(chunk.[0..3])
-            let port = uint16 ((int chunk.[4] <<< 8) ||| int chunk.[5])
-            { IP = ip; Port = port })
-        |> Array.toList
-        |> Ok
-
 
 let internal buildConnectRequest (transactionId: int32) : byte[] =
     Array.concat [ writeInt64BE 0x41727101980L; writeInt32BE 0; writeInt32BE transactionId ]
@@ -111,7 +98,7 @@ let internal parseAnnounceResponse (expectedTxId: int32) (buf: byte[]) : Result<
             let seeders = readInt32BE buf 16
             let peerBytes = buf.[20..]
 
-            parseCompactPeers peerBytes
+            HttpTracker.parseCompactPeers peerBytes
             |> Result.map (fun peers ->
                 { Interval = interval
                   MinInterval = Option.None
