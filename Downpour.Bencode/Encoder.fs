@@ -16,16 +16,7 @@ let rec encode (value: BencodeValue) : byte[] =
         let sortedPairs =
             d
             |> Map.toSeq
-            |> Seq.sortWith (fun (a, _) (b, _) ->
-                let len = min a.Length b.Length
-                let mutable i = 0
-                let mutable result = 0
-
-                while i < len && result = 0 do
-                    result <- compare a.[i] b.[i]
-                    i <- i + 1
-
-                if result = 0 then compare a.Length b.Length else result)
+            |> Seq.sortWith (fun (a, _) (b, _) -> compare a b)
 
         let body =
             sortedPairs
